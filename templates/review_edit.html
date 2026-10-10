@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}编辑点评 · 寻味{% endblock %}
+{% block content %}<section class="auth-card panel"><h1>编辑点评</h1><form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{% for name,label in [('rating','综合'),('taste_score','口味'),('environment_score','环境'),('service_score','服务')] %}<label class="field"><span>{{ label }}评分</span><select name="{{ name }}">{% for v in [5,4,3,2,1] %}<option value="{{ v }}" {{ 'selected' if review[name] == v }}>{{ v }} 星</option>{% endfor %}</select></label>{% endfor %}
+<label class="field"><span>点评内容</span><textarea name="content" required minlength="5" maxlength="500" rows="6">{{ review.content }}</textarea></label>
+<button class="btn btn--block">保存修改</button></form></section>{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stars %}
+
+{% block title %}{{ r.name }} · 寻味{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb"><a href="{{ url_for('catalog.index') }}">首页</a> <span>›</span> <span>{{ r.name }}</span></nav>
+
+<div class="detail-hero">
+  <div class="detail-hero__inner">
+    <div>
+      <h1>{{ r.name }} <span class="badge">{{ r.category }}</span></h1>
+      <p class="detail-hero__meta">{{ r.address }} &nbsp;·&nbsp; 人均 ¥{{ r.avg_price }} &nbsp;·&nbsp; {{ r.phone }}</p>
+      <p class="detail-hero__desc">{{ r.description }}</p>
+      <button class="fav fav--detail {{ 'is-active' if is_favorite }}" data-fav="{{ r.id }}" type="button" aria-label="收藏{{ r.name }}"><span class="favorite-off">收藏餐厅</span><span class="favorite-on">已收藏</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <!-- 左栏 -->
+  <div class="detail-main">
+    <section class="panel">
+      <h2 class="panel__title">综合评分</h2>
+      <div class="score-overview">
+        <div class="score-big">
+          <b>{{ r.rating }}</b><span> / 5.0</span>
+          <div>{{ stars(r.rating, 'lg') }}</div>
+          <p class="muted">共 {{ total }} 条点评</p>
+        </div>
+        <div class="score-detail">
+          <div class="score-row"><span>口味</span><b>{{ r.taste_score }}</b></div>
+          <div class="score-row"><span>环境</span><b>{{ r.environment_score }}</b></div>
+          <div class="score-row"><span>服务</span><b>{{ r.service_score }}</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__title">评分分布</h2>
+      <div class="dist">
+        {% for v in [5, 4, 3, 2, 1] %}
+        <div class="dist__row">
+          <span class="dist__label">{{ v }} 星</span>
+          <div class="dist__bar">
+            <div class="dist__fill" style="width: {{ (dist[v] / total * 100) if total else 0 }}%"></div>
+          </div>
+          <span class="dist__count">{{ dist[v] }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__title">推荐菜</h2>
+      <ul class="dish-list">
+        {% for d in dishes %}
+        <li>
+          <span class="dish__name">{{ d.name }}</span>
+          <span class="dish__rec">{{ d.recommend_count }} 人推荐</span>
+          <span class="dish__price">¥{{ d.price }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel__title">全部点评 <span class="muted">({{ total }})</span></h2>
+      <div class="reviews">
+        {% for rv in reviews %}
+        <div class="review">
+          <div class="review__head">
+            <span class="avatar">{{ rv.display_author[0] }}</span>
+            <div>
+              <b>{{ rv.display_author }}</b>
+              <div class="review__meta">{{ stars(rv.rating, 'sm') }} <span class="muted">{{ rv.created_at }}</span></div>
+            </div>
+          </div>
+          <p class="review__content">{{ rv.content }}</p>
+          <div class="review__sub muted">
+            口味 {{ rv.taste_score }} · 环境 {{ rv.environment_score }} · 服务 {{ rv.service_score }}
+          </div>
+          {% if g.user and (g.user.role == 'admin' or rv.user_id == g.user.id) %}
+          <div class="review-actions"><a href="{{ url_for('reviews.edit_review', review_id=rv.id) }}">编辑</a>
+            <form class="inline-form" method="post" action="{{ url_for('reviews.delete_review', review_id=rv.id) }}" onsubmit="return confirm('确定删除这条点评？')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="link-button danger">删除</button>
+            </form></div>
+          {% endif %}
+        </div>
+        {% else %}
+        <p class="muted">还没有食客点评。</p>
+        {% endfor %}
+      </div>
+      {% if pages > 1 %}<nav class="pagination">{% for p in range(1, pages + 1) %}<a class="{{ 'is-active' if p == page }}" href="{{ url_for('catalog.detail', rid=r.id, page=p) }}">{{ p }}</a>{% endfor %}</nav>{% endif %}
+    </section>
+  </div>
+
+  <!-- 右栏：发布点评 -->
+  <aside class="detail-side">
+    <section class="panel panel--form">
+      <h2 class="panel__title">写点评</h2>
+      {% if g.user %}
+      <form method="post" action="{{ url_for('reviews.add_review', rid=r.id) }}" id="review-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="field">
+          <span>综合评分</span>
+          <div class="star-input">
+            <input type="radio" name="rating" id="r5" value="5" required><label for="r5" title="5 星">★</label>
+            <input type="radio" name="rating" id="r4" value="4"><label for="r4" title="4 星">★</label>
+            <input type="radio" name="rating" id="r3" value="3"><label for="r3" title="3 星">★</label>
+            <input type="radio" name="rating" id="r2" value="2"><label for="r2" title="2 星">★</label>
+            <input type="radio" name="rating" id="r1" value="1"><label for="r1" title="1 星">★</label>
+          </div>
+        </div>
+
+        <div class="sub-scores">
+          <label class="field field--inline"><span>口味</span>
+            <select name="taste_score">{% for v in [5,4,3,2,1] %}<option value="{{ v }}">{{ v }} 星</option>{% endfor %}</select>
+          </label>
+          <label class="field field--inline"><span>环境</span>
+            <select name="environment_score">{% for v in [5,4,3,2,1] %}<option value="{{ v }}">{{ v }} 星</option>{% endfor %}</select>
+          </label>
+          <label class="field field--inline"><span>服务</span>
+            <select name="service_score">{% for v in [5,4,3,2,1] %}<option value="{{ v }}">{{ v }} 星</option>{% endfor %}</select>
+          </label>
+        </div>
+
+        <label class="field">
+          <span>点评内容</span>
+          <textarea name="content" required minlength="5" maxlength="500" rows="5" placeholder="说说你的真实体验（5~500 字）…"></textarea>
+        </label>
+
+        <button class="btn btn--block" type="submit">发布点评</button>
+      </form>
+      {% else %}<div class="empty"><p>登录后即可分享真实体验</p><a class="btn" href="{{ url_for('accounts.login', next=request.path) }}">登录写点评</a></div>{% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import stars %}
+{% block title %}销量排行榜 · 寻味{% endblock %}
+{% block content %}
+<section class="directory-heading"><div><p class="section-overline">餐厅榜单</p><h1>销量排行榜</h1><p class="heading-note">按完成订单数排列，每个周期单独统计。</p></div><div class="heading-date"><span>{{ periods[period] }}</span><b>{{ start.strftime('%m.%d') }} — {{ end.strftime('%m.%d') }}</b><small>{{ end.year }} · 北京时间</small></div></section>
+<div class="directory-layout ranking-layout">
+  <div class="directory-main">
+    <section class="ranking-controls"><nav class="period-tabs" aria-label="排行榜周期">{% for key,label in periods.items() %}<a class="{{ 'is-active' if period == key }}" {% if period == key %}aria-current="page"{% endif %} href="{{ url_for('discovery.rankings',period=key,category=category,source=source) }}">{{ label }}</a>{% endfor %}</nav>
+      <form method="get" class="discovery-filters compact-filters"><input type="hidden" name="period" value="{{ period }}"><label><span class="sr-only">菜系</span><select name="category"><option value="">全部菜系</option>{% for c in categories %}<option {{ 'selected' if category == c }}>{{ c }}</option>{% endfor %}</select></label><label><span class="sr-only">销量来源</span><select name="source"><option value="manual" {{ 'selected' if source == 'manual' }}>录入销量</option><option value="demo" {{ 'selected' if source == 'demo' }}>演示销量</option></select></label><button class="btn-ghost">筛选</button></form>
+    </section>
+    <div class="ranking-summary"><p><b>{{ restaurants|length }}</b> 家上榜 <span>/</span> 共 <b>{{ '{:,}'.format(total_sales) }}</b> 单</p><span class="small-label">{{ '演示数据' if source == 'demo' else '管理员录入' }}</span></div>
+    {% if restaurants %}<div class="ranking-list"><div class="ranking-table-head"><span>排名</span><span>餐厅</span><span>本期销量</span></div>{% for r in restaurants %}<a class="panel ranking-row" href="{{ url_for('catalog.detail',rid=r.id) }}"><span class="rank-number {{ 'rank-top' if r.rank <= 3 }}">{{ '%02d'|format(r.rank) }}</span><div class="rank-info"><h2>{{ r.name }}<span class="cuisine-label">{{ r.category }}</span></h2><div class="ranking-meta">{{ stars(r.rating, 'sm') }}<b>{{ r.rating }}</b><span>人均 ¥{{ r.avg_price }}</span></div><p class="muted">{{ r.address }}</p></div><div class="rank-sales"><b>{{ '{:,}'.format(r.sales) }}</b><span>单</span><small>{{ r.recorded_days }} 天记录</small></div></a>{% endfor %}</div>
+    {% else %}<div class="empty panel"><h2>暂无上榜餐厅</h2><p>当前周期还没有可上榜的销量记录。</p>{% if g.user and g.user.role == 'admin' %}<a class="btn" href="{{ url_for('admin.sales') }}">管理销量</a>{% elif source == 'manual' %}<a class="btn-ghost" href="{{ url_for('discovery.rankings',period=period,category=category,source='demo') }}">查看演示榜单</a>{% endif %}</div>{% endif %}
+  </div>
+  <aside class="directory-side"><section class="sidebar-section"><h2>统计口径</h2><dl class="ranking-guide"><div><dt>日榜</dt><dd>今天 0 点至今</dd></div><div><dt>周榜</dt><dd>本周一至今天</dd></div><div><dt>月榜</dt><dd>本月 1 日至今天</dd></div></dl><p class="sidebar-copy">以北京时间为准。同销量并列排名，点击餐厅可查看详情。</p></section><section class="sidebar-section sidebar-section--quiet"><h2>数据说明</h2>{% if source == 'demo' %}<p class="sidebar-copy">当前为虚构演示销量，仅用于课程展示，不代表真实交易。</p>{% else %}<p class="sidebar-copy">销量由管理员按日录入，不包含演示数据。未录入不等于零销量，仅展示本期累计销量大于零的餐厅。</p>{% endif %}{% if g.user and g.user.role == 'admin' %}<a class="sidebar-link" href="{{ url_for('admin.sales') }}">录入销量 →</a>{% endif %}</section><a class="sidebar-link" href="{{ url_for('catalog.index') }}">浏览全部餐厅 →</a></aside>
+</div>
+{% endblock %}

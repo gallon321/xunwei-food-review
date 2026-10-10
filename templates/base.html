@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}寻味 · 美食点评{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/editorial.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="{{ url_for('catalog.index') }}" class="brand">
+        <span class="brand__logo">寻</span>
+        <span class="brand__name">寻味</span>
+        <span class="brand__tag">餐厅指南</span>
+      </a>
+      <div class="header-actions">
+        <nav class="primary-nav" aria-label="主导航">
+          <a href="{{ url_for('catalog.index') }}" class="header-link {{ 'is-current' if request.endpoint == 'catalog.index' }}" {% if request.endpoint == 'catalog.index' %}aria-current="page"{% endif %}>找餐厅</a>
+          <a href="{{ url_for('discovery.rankings') }}" class="header-link {{ 'is-current' if request.endpoint == 'discovery.rankings' }}" {% if request.endpoint == 'discovery.rankings' %}aria-current="page"{% endif %}>销量排行榜</a>
+          <a href="{{ url_for('discovery.recommendations') }}" class="header-link {{ 'is-current' if request.endpoint == 'discovery.recommendations' }}" {% if request.endpoint == 'discovery.recommendations' %}aria-current="page"{% endif %}>为你推荐</a>
+        </nav>
+        <div class="account-nav">
+        {% if g.user %}
+          <a href="{{ url_for('accounts.profile') }}" class="header-link">{{ g.user.username }} · 收藏 <b data-fav-count>{{ favorite_count }}</b></a>
+          <a href="{{ url_for('accounts.settings') }}" class="header-link">设置</a>
+          {% if g.user.role == 'admin' %}<a href="{{ url_for('admin.admin_dashboard') }}" class="header-link">管理后台</a>{% endif %}
+          <form method="post" action="{{ url_for('accounts.logout') }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="link-button">退出</button>
+          </form>
+        {% else %}
+          <span class="fav-badge">本地收藏 <b data-fav-count>0</b></span>
+          <a href="{{ url_for('accounts.login') }}" class="header-link">登录</a>
+          <a href="{{ url_for('accounts.register') }}" class="header-link">注册</a>
+        {% endif %}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="container flashes">
+        {% for category, msg in messages %}
+          <div class="flash flash--{{ category }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p><strong>寻味</strong><span>餐厅 · 菜品 · 食客点评</span></p>
+      <a href="{{ url_for('catalog.index') }}">找餐厅</a><a href="{{ url_for('discovery.rankings') }}">查看榜单</a>
+    </div>
+  </footer>
+
+  <script>window.XUNWEI = {loggedIn: {{ 'true' if g.user else 'false' }}, csrf: {{ csrf_token|tojson }}};</script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

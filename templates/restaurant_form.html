@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% set editing = request.endpoint == 'admin.admin_restaurant_edit' %}
+{% block title %}{{ '编辑' if editing else '新增' }}餐厅 · 寻味{% endblock %}
+{% block content %}
+<section class="form-wide panel"><h1>{{ '编辑' if editing else '新增' }}餐厅</h1>
+<p class="muted">完善餐厅资料，帮助食客找到心仪的好味道。</p>
+<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{% for name,label,limit in [('name','名称',80),('category','分类',30),('address','地址',200),('phone','电话',40),('emoji','餐厅图标',12)] %}
+<label class="field"><span>{{ label }}</span><input name="{{ name }}" value="{{ restaurant[name] if restaurant else '' }}" maxlength="{{ limit }}" {{ 'required' if name in ['name','category','address'] }}></label>{% endfor %}
+<label class="field"><span>人均价格（元）</span><input name="avg_price" type="number" min="0" max="100000" step="1" value="{{ restaurant.avg_price if restaurant else 0 }}" required></label>
+<label class="field"><span>封面配色</span><select name="theme">{% for key,choice in themes.items() %}<option value="{{ key }}" {{ 'selected' if restaurant and restaurant.gradient|replace(' ','') == choice[1] }}>{{ choice[0] }}</option>{% endfor %}</select></label>
+<label class="field"><span>简介</span><textarea name="description" maxlength="2000" rows="4">{{ restaurant.description if restaurant else '' }}</textarea></label>
+<button class="btn">保存餐厅</button> <a class="btn-ghost" href="{{ url_for('admin.admin_dashboard') }}">返回管理后台</a>
+</form></section>{% endblock %}

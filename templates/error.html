@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block title %}{{ code }} · 寻味{% endblock %}{% block content %}<div class="empty tall"><p class="empty__icon">{{ '🔒' if code == 403 else '🍽️' }}</p><h1>{{ code }}</h1><p>{{ message }}</p><a class="btn" href="{{ url_for('catalog.index') }}">返回首页</a></div>{% endblock %}

@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}销量管理 · 寻味{% endblock %}
+{% block content %}
+<section class="page-head"><h1>销量管理</h1><p class="muted">按餐厅和日期保存当天完成的订单总数，单位：单。重复录入将替换当天总量。</p></section>
+<nav class="admin-nav"><a class="chip" href="{{ url_for('admin.admin_dashboard') }}">返回后台</a><a class="chip" href="{{ url_for('discovery.rankings') }}">查看销量榜</a></nav>
+<form method="post" class="panel discovery-filters sales-form"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>餐厅<select name="restaurant_id" required>{% for r in restaurants %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}</select></label><label>日期<input type="date" name="sale_date" value="{{ today }}" max="{{ today }}" required></label><label>当天销量 / 单<input type="number" name="quantity" min="0" max="1000000" required placeholder="当天总量"></label><button class="btn">保存销量</button></form>
+{% if demo_allowed %}<div class="panel demo-panel"><div><h2>课程演示数据</h2><p class="muted">为最近 35 天生成虚构销量，保留已有记录；演示销量不会进入录入销量榜或影响智能推荐。</p></div><form method="post" action="{{ url_for('admin.sales_demo') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="btn-ghost">生成演示销量</button></form></div>{% endif %}
+<section class="panel"><h2>销量记录</h2><p class="muted">修改记录：在上方选择相同餐厅和日期重新保存；填 0 可将当天录入销量归零。</p><div class="table-wrap"><table><thead><tr><th>日期</th><th>餐厅</th><th>销量 / 单</th><th>来源</th></tr></thead><tbody>{% for s in records %}<tr><td>{{ s.sale_date }}</td><td>{{ s.name }}</td><td>{{ s.quantity }}</td><td>{{ '演示数据' if s.source == 'demo' else '管理员录入' }}</td></tr>{% else %}<tr><td colspan="4">还没有销量记录，请先录入或生成演示数据。</td></tr>{% endfor %}</tbody></table></div></section>
+{% if pages > 1 %}<nav class="pagination" aria-label="销量记录分页">{% for p in range(1,pages+1) %}<a class="{{ 'is-active' if page == p }}" href="{{ url_for('admin.sales',page=p) }}">{{ p }}</a>{% endfor %}</nav>{% endif %}
+{% endblock %}

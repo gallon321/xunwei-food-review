@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ '注册' if mode == 'register' else '登录' }} · 寻味{% endblock %}
+{% block content %}
+<section class="auth-card panel">
+  <h1>{{ '注册账号' if mode == 'register' else '登录寻味' }}</h1>
+  <p class="muted">{{ '加入寻味，收藏餐厅并记录你的美食体验。' if mode == 'register' else '登录后可收藏餐厅、发布和管理点评。' }}</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+    <label class="field"><span>用户名</span><input name="username" required minlength="3" maxlength="20" autocomplete="username"></label>
+    <label class="field"><span>密码</span><input type="password" name="password" required minlength="{{ 8 if mode == 'register' else 1 }}" maxlength="72" autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}"></label>
+    <button class="btn btn--block">{{ '注册并登录' if mode == 'register' else '登录' }}</button>
+  </form>
+  <p class="auth-switch">{% if mode == 'register' %}已有账号？<a href="{{ url_for('accounts.login') }}">去登录</a>{% else %}还没有账号？<a href="{{ url_for('accounts.register') }}">去注册</a>{% endif %}</p>
+</section>
+{% endblock %}

@@ -1,2 +1,137 @@
-# xunwei-food-review
-寻味：Python / Flask 美食点评项目，包含餐厅搜索、销量排行榜、个性化推荐和管理后台。
+# 寻味 · 美食点评
+
+面向中文用户的餐厅发现与点评项目，使用 Python、Flask、SQLite、Jinja2 和原生 CSS/JavaScript。包含用户端及管理员后台，支持沿用原 Demo 数据。
+
+## 快速体验
+
+需要 Python 3.11 或以上。在项目目录执行：
+
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS / Linux: source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m flask --app app init-db --demo
+python scripts/seed_sales.py
+python serve.py
+```
+
+打开 [首页](http://127.0.0.1:5000/)，或直接查看 [演示销量榜](http://127.0.0.1:5000/rankings?source=demo)。演示账号为 `admin / admin123` 和 `foodie / foodie123`。推荐页可按菜系和预算筛选；登录后收藏或点评，推荐将结合个人偏好。
+
+仓库只包含源码，不上传本地数据库、密钥、备份或依赖目录。以上初始化步骤会在本地创建虚构餐厅、点评和随机演示销量，不需要下载现有业务数据库。
+
+## 功能
+
+- 餐厅/菜品搜索、分类、排序、跨页收藏筛选与详情评分。
+- 注册登录、个人中心、账号设置、密码修改和旧会话失效。
+- 点评发布、编辑、删除与管理员隐藏/恢复；评分实时重算。
+- 管理员餐厅增删改、菜品增删改、用户启停、历史点评审核与操作日志。
+- 数据库版本迁移、升级前自动备份、命令行备份和健康检查。
+- 参数绑定、密码哈希、CSRF、权限校验、登录失败次数限制。
+- 日、周、月餐厅销量排行榜，菜系筛选、同销量并列、录入与演示数据分开统计。
+- 智能推荐：结合收藏、最近的可见点评、菜系偏好、人均价位、口碑和近 7 天录入销量，展示推荐理由，支持菜系与预算筛选。
+
+## 排行榜与智能推荐
+
+首页或导航栏进入“销量排行榜”和“智能推荐”。日榜统计北京时间当天，周榜从周一开始，月榜从每月 1 日开始，均统计至今天；销量单位为完成订单的“单”。
+
+管理员进入后台的“销量管理”，按餐厅、日期录入当天销量。同日重复保存会替换总量，填 0 将当天销量归零。当前没有支付或订单系统，销量来自管理员录入，不代表平台自动验证的交易。
+
+课程展示可在销量管理点击“生成演示销量”，生成最近 35 天虚构数据，再选择排行榜的“演示销量”。演示数据不会混入录入销量榜、不会影响推荐；生产模式禁止生成演示数据。录入同餐厅同日期的真实销量会替换该演示记录。
+
+推荐使用本地可解释的加权排序，无需外部 AI 接口。基础权重为平滑口碑 45%、菜系偏好 35%、常选价位 10%、近 7 天录入销量 10%；对已收藏/好评餐厅适度降权以鼓励发现，并对重复菜系适度降权。收藏和 4~5 星点评建立偏好，最近可见的 1~2 星点评将对应餐厅排除，隐藏点评不参与。没有行为记录的用户按口碑和热度推荐；筛选条件始终生效。
+
+## 本机运行
+
+本机已有业务数据库时，启动会自动备份并迁移，原有餐厅与点评保留。Windows 当前开发环境可使用：
+
+```powershell
+D:\python\python.exe -m pip install -r requirements.txt
+D:\python\python.exe serve.py
+```
+
+也可运行 `./start.ps1`。默认地址为 [http://127.0.0.1:5000](http://127.0.0.1:5000)，健康检查为 `/health`。
+启动脚本优先使用项目 `.venv`，其次系统 Python，最后尝试本机 `D:\python\python.exe`。
+保留 `python app.py` 作为开发入口；正式服务使用 Waitress 的 `serve.py`。
+
+原 Demo 账号保持可用：`admin / admin123`、`foodie / foodie123`。升级后需重新登录。
+新版本可在“设置”修改密码。现有商家和历史示例点评均为虚构演示内容。
+
+## 全新安装
+
+建议 Python 3.11 或以上，当前在 Windows / Python 3.14 上验收。
+
+Windows 一键安装：运行 `./setup.ps1 -Demo` 导入虚构餐厅和演示账号；运行 `./setup.ps1` 则初始化空项目并提示创建管理员。安装完成后运行 `./start.ps1`。
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m flask --app app init-db
+.\.venv\Scripts\python.exe -m flask --app app create-admin
+.\.venv\Scripts\python.exe serve.py
+```
+
+`create-admin` 会提示输入用户名和密码。默认初始化空数据库，不创建固定密码的管理员。
+若需要示例餐厅及演示账号，可在开发环境显式运行 `python -m flask --app app init-db --demo`。
+勿删除业务库来升级；已经初始化的示例餐厅即使全部删除，也不会在重启后重新出现。
+
+## 配置
+
+配置从系统环境变量读取，不自动加载 .env。
+
+| 环境变量 | 用途 |
+| --- | --- |
+| XUNWEI_DATABASE | SQLite 绝对路径，默认项目下 xunwei.db；父目录须存在 |
+| SECRET_KEY | 会话签名密钥；生产环境必须设置至少 32 字符的随机值 |
+| XUNWEI_ENV | production 启用生产校验及 Secure Cookie |
+| XUNWEI_HOST | 服务监听地址，默认 127.0.0.1 |
+| XUNWEI_PORT | 端口，默认 5000 |
+
+本地未设置 SECRET_KEY 时，在 `instance/secret.key` 持久化随机密钥；该文件不应提交或共享。
+生产部署使用全新数据库、独立管理员、HTTPS 反向代理及固定随机密钥；`production` 模式禁止导入演示账号。
+本次仅交付本地项目与启动能力，尚未部署公网；SQLite 适合当前单机规模。
+
+## 备份与测试
+
+```powershell
+python -m flask --app app backup-db
+python -m unittest discover -s tests -v
+```
+
+备份位于数据库旁的 `backups/`，文件名包含时间。恢复前停止服务，并保留当前库副本，再将备份复制至配置的数据库路径。
+自动化测试均使用临时数据库。
+
+## 目录结构
+
+```text
+app.py                  Flask CLI / 开发兼容入口
+serve.py                Waitress 启动入口
+start.ps1               Windows 启动脚本
+xunwei/
+  __init__.py           应用工厂、配置、异常处理、健康检查
+  db.py                 数据库连接与初始化
+  migrations.py         版本迁移与一致性备份
+  security.py           会话、权限、CSRF
+  services.py           评分重算与操作日志
+  accounts.py           账号、个人中心、密码管理
+  catalog.py            餐厅浏览与详情
+  discovery.py          销量榜与本地个性化推荐
+  reviews.py            点评业务
+  favorites.py          收藏与游客数据合并
+  admin.py              餐厅、菜品、用户管理与审核
+  cli.py                初始化、管理员创建、备份命令
+  seed.py               开发示例数据
+templates/              用户端与后台模板
+static/                 样式及前端交互
+scripts/seed_sales.py   生成最近 35 天随机演示销量，不覆盖已有记录
+tests/                  业务与项目回归测试
+docs/                   设计说明与验收流程
+```
+
+详见 [课程项目说明](docs/course-report.md)、[项目设计](docs/architecture.md) 和 [验收步骤](docs/acceptance.md)。
+
+## 课程展示与交付
+
+运行 `./scripts/package.ps1` 会生成 `dist/xunwei-source-1.0.0.zip`。源码包包含项目代码、示例数据生成逻辑、文档和测试，不包含本机数据库、密码密钥、虚拟环境或备份。接收方解压后按“全新安装”操作即可重建演示环境。
+
+建议展示顺序：游客搜索与收藏 → 普通用户点评和个人中心 → 管理员审核、菜品管理与操作记录。可结合 [验收步骤](docs/acceptance.md) 演示主要业务流。

@@ -1,0 +1,20 @@
+{% macro stars(rating, size='md') -%}
+<span class="stars stars--{{ size }}" title="{{ rating }} 分">
+  <span class="stars__empty">★★★★★</span>
+  <span class="stars__fill" style="width: {{ '%0.1f'|format(rating / 5 * 100) }}%">★★★★★</span>
+</span>
+{%- endmacro %}
+
+{% macro restaurant_card(r, favorite_ids=[], allow_favorite=false) -%}
+<article class="card restaurant-row" data-card-id="{{ r.id }}">
+  <div class="card__body">
+    <div class="restaurant-kicker"><span class="cuisine-label">{{ r.category }}</span><span class="restaurant-price">人均 <b>¥{{ r.avg_price }}</b></span></div>
+    <div class="card__head"><a href="{{ url_for('catalog.detail', rid=r.id) }}" class="card__name">{{ r.name }}</a><span class="card__rating"><b>{{ r.rating }}</b><small>分</small></span></div>
+    <div class="card__stars">{{ stars(r.rating) }} <span class="muted">{{ r.review_count }} 条点评</span></div>
+    <p class="card__desc">{{ r.description }}</p>
+    {% if r.top_dishes is defined and r.top_dishes %}<p class="dish-summary"><span>推荐菜</span> {{ r.top_dishes|join(' / ') }}</p>{% endif %}
+    {% if r.reasons is defined %}<div class="recommendation-reasons"><span class="reason-label">推荐依据</span>{% for reason in r.reasons %}<span>{{ reason }}</span>{% endfor %}</div>{% endif %}
+    <div class="card__foot"><span class="addr">{{ r.address }}</span><div class="row-actions">{% if allow_favorite %}<button class="fav {{ 'is-active' if r.id in favorite_ids }}" data-fav="{{ r.id }}" type="button" aria-label="收藏{{ r.name }}"><span class="favorite-off">收藏</span><span class="favorite-on">已收藏</span></button>{% endif %}<a class="detail-link" href="{{ url_for('catalog.detail', rid=r.id) }}">查看详情 <span aria-hidden="true">→</span></a></div></div>
+  </div>
+</article>
+{%- endmacro %}

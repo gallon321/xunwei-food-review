@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import restaurant_card %}
+{% block title %}找餐厅 · 寻味{% endblock %}
+{% block content %}
+<section class="directory-heading">
+  <div><p class="section-overline">餐厅 / 点评 / 推荐菜</p><h1>找餐厅</h1><p class="heading-note">先看口味和人均，再决定去哪吃。</p></div>
+  <form class="searchbar" method="get" action="{{ url_for('catalog.index') }}" role="search">
+    <input aria-label="搜索餐厅或菜品" type="search" name="q" value="{{ q }}" placeholder="餐厅名称、地址或菜品" autocomplete="off">
+    <button type="submit">搜索</button>
+    {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+    {% if favorites_only %}<input type="hidden" name="favorites" value="1"><input type="hidden" name="ids" value="{{ guest_ids }}">{% endif %}
+  </form>
+</section>
+<div class="directory-layout">
+  <div class="directory-main">
+    <section class="filter-board" aria-label="餐厅筛选">
+      <div class="filter-line"><span class="filter-label">菜系</span><div class="cats">
+        <a class="chip {{ 'is-active' if not category }}" href="{{ url_for('catalog.index', q=q, sort=sort, favorites=1 if favorites_only else 0, ids=guest_ids) }}">全部</a>
+        {% for c in categories %}<a class="chip {{ 'is-active' if category == c }}" href="{{ url_for('catalog.index', q=q, category=c, sort=sort, favorites=1 if favorites_only else 0, ids=guest_ids) }}">{{ c }}</a>{% endfor %}
+      </div></div>
+      <div class="filter-line filter-line--bottom"><p class="result-count">{% if q %}“{{ q }}” · {% endif %}{{ total }} 家餐厅{% if favorites_only %} · 仅收藏{% endif %}</p><div class="toolbar__right">
+        <button class="btn-ghost {{ 'is-active' if favorites_only }}" id="fav-filter" type="button">{{ '显示全部' if favorites_only else '只看收藏' }}</button>
+        <form method="get" action="{{ url_for('catalog.index') }}" class="sort-form">
+          {% if favorites_only %}<input type="hidden" name="favorites" value="1"><input type="hidden" name="ids" value="{{ guest_ids }}">{% endif %}
+          {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}{% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+          <select aria-label="餐厅排序" name="sort" onchange="this.form.submit()">{% for val,label in sort_options %}<option value="{{ val }}" {{ 'selected' if sort == val }}>{{ label }}</option>{% endfor %}</select>
+        </form>
+      </div></div>
+    </section>
+    {% if restaurants %}<div class="restaurant-list">{% for r in restaurants %}{{ restaurant_card(r, favorite_ids, true) }}{% endfor %}</div>
+    {% if pages > 1 %}<nav class="pagination" aria-label="餐厅列表分页">{% for p in range(1,pages+1) %}<a class="{{ 'is-active' if p == page }}" href="{{ url_for('catalog.index', q=q, category=category, sort=sort, page=p, favorites=1 if favorites_only else 0, ids=guest_ids) }}">{{ p }}</a>{% endfor %}</nav>{% endif %}
+    {% else %}<div class="empty panel"><h2>没有找到匹配的餐厅</h2><p>换一个关键词，或试试其他菜系。</p><a class="btn" href="{{ url_for('catalog.index') }}">清除筛选</a></div>{% endif %}
+  </div>
+  <aside class="directory-side">
+    <section class="sidebar-section"><div class="sidebar-heading"><h2>今日销量榜</h2>{% if ranking_source == 'demo' %}<span class="small-label">演示</span>{% endif %}</div>
+      {% for r in ranking_preview %}<a class="sidebar-ranking" href="{{ url_for('catalog.detail', rid=r.id) }}"><span>{{ '%02d'|format(r.rank) }}</span><div><b>{{ r.name }}</b><small>{{ r.category }} · 人均 ¥{{ r.avg_price }}</small></div><strong>{{ r.sales }}<small>单</small></strong></a>{% else %}<p class="muted">暂无销量记录。</p>{% endfor %}
+      <a class="sidebar-link" href="{{ url_for('discovery.rankings', source=ranking_source) }}">查看完整榜单 →</a>
+    </section>
+    <section class="sidebar-section"><p class="section-overline">按你的偏好筛选</p><h2>还没决定吃什么？</h2><p class="sidebar-copy">选一个菜系，设定人均预算，看看有哪些合适的餐厅。</p><a class="sidebar-link" href="{{ url_for('discovery.recommendations') }}">查看智能推荐 →</a></section>
+    <section class="sidebar-section sidebar-section--quiet"><h2>点评怎么看</h2><p class="sidebar-copy">综合评分之外，也可以看看口味、环境和服务分。进入餐厅详情，可查看推荐菜和完整食客点评。</p></section>
+  </aside>
+</div>
+{% endblock %}

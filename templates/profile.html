@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}个人中心 · 寻味{% endblock %}
+{% block content %}
+<section class="page-head"><h1>个人中心</h1><p class="muted">{{ g.user.username }} · 收藏与点评记录</p></section>
+<div class="profile-grid">
+  <section class="panel"><h2 class="panel__title">我的收藏 <span class="muted">({{ favorites|length }})</span></h2>
+    {% for r in favorites %}<div class="list-row"><span><a href="{{ url_for('catalog.detail', rid=r.id) }}"><b>{{ r.name }}</b></a></span><span>{{ r.rating }} 分 · ¥{{ r.avg_price }}/人</span></div>
+    {% else %}<p class="muted">还没有收藏餐厅。</p>{% endfor %}
+  </section>
+  <section class="panel"><h2 class="panel__title">我的点评 <span class="muted">({{ reviews|length }})</span></h2>
+    {% for rv in reviews %}<div class="review"><b><a href="{{ url_for('catalog.detail', rid=rv.restaurant_id) }}">{{ rv.restaurant_name }}</a></b> · {{ rv.rating }} 星
+      <p>{{ rv.content }}</p><small class="muted">{{ rv.created_at }} · {{ '已展示' if rv.status == 'visible' else '已隐藏' }}</small>
+      <div class="review-actions"><a href="{{ url_for('reviews.edit_review', review_id=rv.id) }}">编辑</a>
+        <form class="inline-form" method="post" action="{{ url_for('reviews.delete_review', review_id=rv.id) }}" onsubmit="return confirm('确定删除？')"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="link-button danger">删除</button></form></div>
+    </div>{% else %}<p class="muted">还没有发布点评。</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

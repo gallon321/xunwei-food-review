@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}操作记录 · 寻味{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="{{ url_for('admin.admin_dashboard') }}">管理后台</a> › 操作记录</nav>
+<section class="page-head"><h1>操作记录</h1><p class="muted">餐厅、菜品、点评和账号管理的变更记录。</p></section>
+<section class="panel table-wrap"><table><thead><tr><th>时间</th><th>操作人</th><th>操作</th><th>对象编号</th></tr></thead><tbody>
+{% for log in logs %}<tr><td>{{ log.created_at }}</td><td>{{ log.username or '已移除账号' }}</td><td>{{ log.action }}</td><td>{{ log.target }}</td></tr>{% else %}<tr><td colspan="4">暂无操作记录。</td></tr>{% endfor %}</tbody></table></section>
+<nav class="pagination">{% for p in range(1, pages + 1) %}<a class="{{ 'is-active' if p == page }}" href="{{ url_for('admin.audit_log', page=p) }}">{{ p }}</a>{% endfor %}</nav>
+{% endblock %}
