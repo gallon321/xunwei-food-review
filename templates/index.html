@@ -1,26 +1,22 @@
 {% extends 'base.html' %}
-{% from '_macros.html' import restaurant_card %}
+{% from '_macros.html' import restaurant_card with context %}
 {% block title %}找餐厅 · 寻味{% endblock %}
 {% block content %}
-<section class="directory-heading">
-  <div><p class="section-overline">餐厅 / 点评 / 推荐菜</p><h1>找餐厅</h1><p class="heading-note">先看口味和人均，再决定去哪吃。</p></div>
-  <form class="searchbar" method="get" action="{{ url_for('catalog.index') }}" role="search">
-    <input aria-label="搜索餐厅或菜品" type="search" name="q" value="{{ q }}" placeholder="餐厅名称、地址或菜品" autocomplete="off">
-    <button type="submit">搜索</button>
-    {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
-    {% if favorites_only %}<input type="hidden" name="favorites" value="1"><input type="hidden" name="ids" value="{{ guest_ids }}">{% endif %}
-  </form>
-</section>
+{% if not q and not category and not location and not favorites_only and page == 1 %}
+<section class="discovery-cover"><img src="{{ url_for('static',filename='images/dining.jpg') }}" alt="餐厅环境展示照片" width="1600" height="500" fetchpriority="high"><div class="cover-copy"><p>用点评，找到下一家好餐厅</p><h1>每一顿，<br>都值得好好挑选。</h1><a class="btn" href="#restaurant-results">浏览餐厅 <span aria-hidden="true">→</span></a></div><span class="cover-credit">餐厅环境展示图 · Unsplash</span></section>
+{% endif %}
+<section class="directory-heading" id="restaurant-results"><div><p class="section-overline">寻味 / 餐厅</p><h1>{{ '搜索结果' if q or location else '餐厅与食客点评' }}</h1><p class="heading-note">{% if q %}“{{ q }}”{% endif %}{% if location %} · {{ location }}{% endif %}{% if not q and not location %}看看大家吃过之后，怎么评价。{% endif %}</p></div><a class="text-link" href="{{ url_for('discovery.recommendations') }}">按口味与预算推荐 →</a></section>
 <div class="directory-layout">
   <div class="directory-main">
     <section class="filter-board" aria-label="餐厅筛选">
       <div class="filter-line"><span class="filter-label">菜系</span><div class="cats">
-        <a class="chip {{ 'is-active' if not category }}" href="{{ url_for('catalog.index', q=q, sort=sort, favorites=1 if favorites_only else 0, ids=guest_ids) }}">全部</a>
-        {% for c in categories %}<a class="chip {{ 'is-active' if category == c }}" href="{{ url_for('catalog.index', q=q, category=c, sort=sort, favorites=1 if favorites_only else 0, ids=guest_ids) }}">{{ c }}</a>{% endfor %}
+        <a class="chip {{ 'is-active' if not category }}" href="{{ url_for('catalog.index', q=q, location=location, sort=sort, favorites=1 if favorites_only else 0, ids=guest_ids) }}">全部</a>
+        {% for c in categories %}<a class="chip {{ 'is-active' if category == c }}" href="{{ url_for('catalog.index', q=q, location=location, category=c, sort=sort, favorites=1 if favorites_only else 0, ids=guest_ids) }}">{{ c }}</a>{% endfor %}
       </div></div>
       <div class="filter-line filter-line--bottom"><p class="result-count">{% if q %}“{{ q }}” · {% endif %}{{ total }} 家餐厅{% if favorites_only %} · 仅收藏{% endif %}</p><div class="toolbar__right">
         <button class="btn-ghost {{ 'is-active' if favorites_only }}" id="fav-filter" type="button">{{ '显示全部' if favorites_only else '只看收藏' }}</button>
         <form method="get" action="{{ url_for('catalog.index') }}" class="sort-form">
+          {% if location %}<input type="hidden" name="location" value="{{ location }}">{% endif %}
           {% if favorites_only %}<input type="hidden" name="favorites" value="1"><input type="hidden" name="ids" value="{{ guest_ids }}">{% endif %}
           {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}{% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
           <select aria-label="餐厅排序" name="sort" onchange="this.form.submit()">{% for val,label in sort_options %}<option value="{{ val }}" {{ 'selected' if sort == val }}>{{ label }}</option>{% endfor %}</select>
@@ -28,7 +24,7 @@
       </div></div>
     </section>
     {% if restaurants %}<div class="restaurant-list">{% for r in restaurants %}{{ restaurant_card(r, favorite_ids, true) }}{% endfor %}</div>
-    {% if pages > 1 %}<nav class="pagination" aria-label="餐厅列表分页">{% for p in range(1,pages+1) %}<a class="{{ 'is-active' if p == page }}" href="{{ url_for('catalog.index', q=q, category=category, sort=sort, page=p, favorites=1 if favorites_only else 0, ids=guest_ids) }}">{{ p }}</a>{% endfor %}</nav>{% endif %}
+    {% if pages > 1 %}<nav class="pagination" aria-label="餐厅列表分页">{% for p in range(1,pages+1) %}<a class="{{ 'is-active' if p == page }}" href="{{ url_for('catalog.index', q=q, location=location, category=category, sort=sort, page=p, favorites=1 if favorites_only else 0, ids=guest_ids) }}">{{ p }}</a>{% endfor %}</nav>{% endif %}
     {% else %}<div class="empty panel"><h2>没有找到匹配的餐厅</h2><p>换一个关键词，或试试其他菜系。</p><a class="btn" href="{{ url_for('catalog.index') }}">清除筛选</a></div>{% endif %}
   </div>
   <aside class="directory-side">

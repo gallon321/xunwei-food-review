@@ -25,6 +25,17 @@ class XunweiTestCase(unittest.TestCase):
         self.assertEqual(self.client.get("/").status_code, 200)
         self.assertIn("蜀香居".encode(), self.client.get("/restaurant/1").data)
 
+    def test_location_search_and_photo_cards(self):
+        with self.app.app_context():
+            get_db().execute("UPDATE restaurants SET address='搜索测试路88号' WHERE id=1")
+            get_db().commit()
+        html = self.client.get('/?location=搜索测试路&q=蜀香居').get_data(as_text=True)
+        self.assertIn('蜀香居', html)
+        self.assertIn('restaurant-photo', html)
+        self.assertIn('location=', html)
+        html = self.client.get('/?location=不存在的街道').get_data(as_text=True)
+        self.assertNotIn('class="restaurant-photo"', html)
+
     def test_register_login_logout(self):
         response = self.client.post("/register", data={"username": "newuser", "password": "secret12"}, follow_redirects=True)
         self.assertIn("注册成功".encode(), response.data)

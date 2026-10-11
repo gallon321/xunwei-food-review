@@ -47,6 +47,13 @@ def create_app(config=None):
     app.before_request(load_user_and_csrf)
     app.context_processor(inject_globals)
 
+    @app.context_processor
+    def photo_helpers():
+        def restaurant_photo(category):
+            name = {'日料': 'sushi', '甜品': 'dessert', '西餐': 'grill', '烧烤': 'grill', '火锅': 'grill'}.get(category, 'dining')
+            return f'images/{name}.jpg'
+        return dict(restaurant_photo=restaurant_photo)
+
     messages = {400: '提交内容无效或页面已过期，请刷新重试', 403: '你没有权限访问这个页面',
                 404: '页面或内容不存在', 413: '提交内容过大', 429: '尝试过于频繁，请稍后重试',
                 500: '服务暂时不可用，请稍后重试'}

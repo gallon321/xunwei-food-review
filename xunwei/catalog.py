@@ -22,6 +22,7 @@ def index():
     db = get_db()
     q = (request.args.get("q") or "").strip()
     category = (request.args.get("category") or "").strip()
+    location = (request.args.get("location") or "").strip()[:200]
     sort = request.args.get("sort") or "rating"
     page = max(request.args.get("page", 1, type=int), 1)
     per_page = 6
@@ -48,6 +49,9 @@ def index():
     if category:
         where.append("r.category = ?")
         params.append(category)
+    if location:
+        where.append("r.address LIKE ?")
+        params.append(f"%{location}%")
 
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
     order_map = {
@@ -100,6 +104,7 @@ def index():
     return render_template(
         "index.html", restaurants=restaurants, categories=categories,
         q=q, category=category, sort=sort, sort_options=SORT_OPTIONS,
+        location=location,
         total=total, page=page, pages=max(1, (total + per_page - 1) // per_page),
         favorite_ids=favorite_ids,
         favorites_only=favorites_only, guest_ids=guest_ids,

@@ -6,6 +6,7 @@
   <title>{% block title %}寻味 · 美食点评{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/editorial.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/yelp-inspired.css') }}">
 </head>
 <body>
   <header class="site-header">
@@ -13,13 +14,15 @@
       <a href="{{ url_for('catalog.index') }}" class="brand">
         <span class="brand__logo">寻</span>
         <span class="brand__name">寻味</span>
-        <span class="brand__tag">餐厅指南</span>
       </a>
+      <form class="header-search" action="{{ url_for('catalog.index') }}" method="get" role="search">
+        <label><span class="sr-only">搜索餐厅或菜品</span><input type="search" name="q" value="{{ request.args.get('q', '') }}" placeholder="餐厅、菜系、推荐菜" aria-label="搜索餐厅或菜品"></label>
+        <label class="header-search-location"><span class="sr-only">城市或区域</span><input type="search" name="location" value="{{ request.args.get('location', '') }}" placeholder="城市、区域或街道" aria-label="城市或区域"></label>
+        <button aria-label="搜索" type="submit"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
+      </form>
       <div class="header-actions">
         <nav class="primary-nav" aria-label="主导航">
-          <a href="{{ url_for('catalog.index') }}" class="header-link {{ 'is-current' if request.endpoint == 'catalog.index' }}" {% if request.endpoint == 'catalog.index' %}aria-current="page"{% endif %}>找餐厅</a>
-          <a href="{{ url_for('discovery.rankings') }}" class="header-link {{ 'is-current' if request.endpoint == 'discovery.rankings' }}" {% if request.endpoint == 'discovery.rankings' %}aria-current="page"{% endif %}>销量排行榜</a>
-          <a href="{{ url_for('discovery.recommendations') }}" class="header-link {{ 'is-current' if request.endpoint == 'discovery.recommendations' }}" {% if request.endpoint == 'discovery.recommendations' %}aria-current="page"{% endif %}>为你推荐</a>
+          <a href="{{ url_for('catalog.index', _anchor='restaurant-results') }}" class="header-link">写点评</a>
         </nav>
         <div class="account-nav">
         {% if g.user %}
@@ -38,6 +41,12 @@
       </div>
     </div>
   </header>
+  <nav class="section-nav" aria-label="餐厅导航"><div class="container">
+    <a class="{{ 'is-active' if request.endpoint == 'catalog.index' }}" href="{{ url_for('catalog.index') }}">餐厅</a>
+    <a class="{{ 'is-active' if request.endpoint == 'discovery.rankings' }}" href="{{ url_for('discovery.rankings') }}">销量排行榜</a>
+    <a class="{{ 'is-active' if request.endpoint == 'discovery.recommendations' }}" href="{{ url_for('discovery.recommendations') }}">为你推荐</a>
+    <a href="{{ url_for('catalog.index', category='火锅') }}">火锅</a><a href="{{ url_for('catalog.index', category='日料') }}">日料</a><a href="{{ url_for('catalog.index', category='甜品') }}">咖啡与甜品</a>
+  </div></nav>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -49,7 +58,7 @@
     {% endif %}
   {% endwith %}
 
-  <main class="container">
+  <main class="container" id="main-content">
     {% block content %}{% endblock %}
   </main>
 

@@ -6,13 +6,17 @@
 {% block content %}
 <nav class="breadcrumb"><a href="{{ url_for('catalog.index') }}">首页</a> <span>›</span> <span>{{ r.name }}</span></nav>
 
+<section class="restaurant-gallery" aria-label="餐厅展示照片"><img src="{{ url_for('static',filename=restaurant_photo(r.category)) }}" alt="{{ r.category }}菜系展示素材"><img src="{{ url_for('static',filename='images/dining.jpg') }}" alt="用餐环境展示素材"><span>展示素材，非商家实拍</span></section>
+
 <div class="detail-hero">
   <div class="detail-hero__inner">
     <div>
       <h1>{{ r.name }} <span class="badge">{{ r.category }}</span></h1>
+      <div class="detail-rating">{{ stars(r.rating, 'lg') }}<b>{{ r.rating }}</b><a href="#customer-reviews">{{ total }} 条点评</a></div>
       <p class="detail-hero__meta">{{ r.address }} &nbsp;·&nbsp; 人均 ¥{{ r.avg_price }} &nbsp;·&nbsp; {{ r.phone }}</p>
       <p class="detail-hero__desc">{{ r.description }}</p>
       <button class="fav fav--detail {{ 'is-active' if is_favorite }}" data-fav="{{ r.id }}" type="button" aria-label="收藏{{ r.name }}"><span class="favorite-off">收藏餐厅</span><span class="favorite-on">已收藏</span></button>
+      <a class="btn review-cta" href="#write-review">★ 写点评</a>
     </div>
   </div>
 </div>
@@ -65,7 +69,7 @@
     </section>
 
     <section class="panel">
-      <h2 class="panel__title">全部点评 <span class="muted">({{ total }})</span></h2>
+      <h2 class="panel__title" id="customer-reviews">全部点评 <span class="muted">({{ total }})</span></h2>
       <div class="reviews">
         {% for rv in reviews %}
         <div class="review">
@@ -97,7 +101,7 @@
 
   <!-- 右栏：发布点评 -->
   <aside class="detail-side">
-    <section class="panel panel--form">
+    <section class="panel panel--form" id="write-review">
       <h2 class="panel__title">写点评</h2>
       {% if g.user %}
       <form method="post" action="{{ url_for('reviews.add_review', rid=r.id) }}" id="review-form">

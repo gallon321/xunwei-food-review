@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from '_macros.html' import restaurant_card %}
+{% from '_macros.html' import restaurant_card with context %}
 {% block title %}为你推荐 · 寻味{% endblock %}
 {% block content %}
 <section class="directory-heading"><div><p class="section-overline">智能推荐</p><h1>为你推荐</h1><p class="heading-note">{{ '根据收藏、好评和常选价位筛选。' if personalized else '先从食客口碑和近期销量开始。' }}</p></div><a class="text-link" href="{{ url_for('catalog.index') }}">浏览全部餐厅 →</a></section>
