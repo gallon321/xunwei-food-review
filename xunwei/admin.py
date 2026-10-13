@@ -77,7 +77,8 @@ def sales_demo():
 
 @bp.context_processor
 def theme_options():
-    return dict(themes=THEMES)
+    from .catalog import category_summary
+    return dict(themes=THEMES, category_options=category_summary())
 
 # ---------------------------------------------------------------- 管理后台
 @bp.route("/admin")

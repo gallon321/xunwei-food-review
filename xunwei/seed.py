@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-def seed_data(db):
+def seed_data(db, extra_only=False):
     """写入示例餐厅、推荐菜与点评。"""
     now = datetime.now()
     restaurants = [
@@ -127,7 +127,63 @@ def seed_data(db):
         },
     ]
 
-    for r in restaurants:
+    extra_restaurants = [
+        {
+            'name': '晨光咖啡馆', 'category': '咖啡', 'address': '成都市武侯区玉林西路 18 号',
+            'phone': '028-5555 0101', 'avg_price': 38,
+            'description': '虚构样本店铺。街角咖啡馆，提供手冲咖啡和轻食，适合午后小坐。',
+            'emoji': '☕', 'gradient': 'linear-gradient(135deg, #c79b72, #76513b)',
+            'dishes': [('拿铁', 28, 86), ('冰美式', 22, 72), ('鸡肉三明治', 32, 45)],
+            'reviews': [('咖啡小白', 5, 5, 4, 5, '演示点评：拿铁奶香柔和，座位舒适。', 1), ('午后客', 4, 4, 5, 4, '演示点评：适合看书，三明治分量刚好。', 5)],
+        },
+        {
+            'name': '巷里小笼面馆', 'category': '小吃快餐', 'address': '杭州市拱墅区大关路 26 号',
+            'phone': '0571-5555 0102', 'avg_price': 26,
+            'description': '虚构样本店铺。现包小笼和热汤面，适合早餐与工作日简餐。',
+            'emoji': '🥟', 'gradient': 'linear-gradient(135deg, #f3c875, #d99346)',
+            'dishes': [('鲜肉小笼', 18, 132), ('葱油拌面', 16, 110), ('牛肉汤面', 28, 68)],
+            'reviews': [('早起吃饭', 5, 5, 4, 4, '演示点评：小笼汤汁足，葱油面很香。', 2), ('上班族', 4, 4, 4, 5, '演示点评：出餐快，午餐价格实惠。', 7)],
+        },
+        {
+            'name': '湘里人家', 'category': '湘菜', 'address': '长沙市开福区湘江中路 56 号',
+            'phone': '0731-5555 0103', 'avg_price': 72,
+            'description': '虚构样本店铺。鲜辣湘味家常菜，招牌剁椒鱼头适合朋友聚餐。',
+            'emoji': '🌶️', 'gradient': 'linear-gradient(135deg, #f69b6e, #c94b39)',
+            'dishes': [('剁椒鱼头', 88, 124), ('农家小炒肉', 42, 103), ('手撕包菜', 22, 61)],
+            'reviews': [('湘味食客', 5, 5, 4, 5, '演示点评：鱼头鲜嫩，剁椒香而有层次。', 3), ('饭搭子', 4, 5, 4, 4, '演示点评：小炒肉很下饭，可以选择辣度。', 8)],
+        },
+        {
+            'name': '青禾素食', 'category': '素食', 'address': '南京市秦淮区长乐路 36 号',
+            'phone': '025-5555 0104', 'avg_price': 58,
+            'description': '虚构样本店铺。以时令蔬菜、豆制品和菌菇入菜，清淡也有滋味。',
+            'emoji': '🥬', 'gradient': 'linear-gradient(135deg, #94c78c, #4f8058)',
+            'dishes': [('菌菇煲', 48, 92), ('时蔬豆腐', 32, 78), ('杂粮饭', 12, 53)],
+            'reviews': [('青菜爱好者', 5, 5, 5, 4, '演示点评：菌菇煲鲜香，蔬菜很新鲜。', 1), ('轻食日记', 4, 4, 5, 5, '演示点评：环境安静，杂粮饭口感不错。', 6)],
+        },
+        {
+            'name': '海风蒸鲜馆', 'category': '海鲜', 'address': '青岛市市南区澳门路 42 号',
+            'phone': '0532-5555 0105', 'avg_price': 138,
+            'description': '虚构样本店铺。主打清蒸海鲜与海鲜粥，适合家庭聚餐。',
+            'emoji': '🦀', 'gradient': 'linear-gradient(135deg, #72c9df, #337eaa)',
+            'dishes': [('清蒸鲈鱼', 98, 112), ('蒜蓉扇贝', 58, 89), ('海鲜粥', 48, 67)],
+            'reviews': [('海边食客', 5, 5, 4, 5, '演示点评：清蒸鱼肉细嫩，调味清爽。', 2), ('周末聚餐', 4, 4, 5, 4, '演示点评：海鲜粥料足，适合全家来吃。', 9)],
+        },
+        {
+            'name': '首尔石锅屋', 'category': '韩餐', 'address': '深圳市南山区南海大道 66 号',
+            'phone': '0755-5555 0106', 'avg_price': 82,
+            'description': '虚构样本店铺。石锅拌饭、泡菜汤与韩式炸鸡，提供双人套餐。',
+            'emoji': '🍲', 'gradient': 'linear-gradient(135deg, #e6a48c, #ae6558)',
+            'dishes': [('石锅拌饭', 42, 116), ('泡菜豆腐汤', 38, 94), ('韩式炸鸡', 58, 73)],
+            'reviews': [('拌饭达人', 5, 5, 4, 4, '演示点评：锅巴香脆，配菜丰富。', 3), ('小饭团', 4, 4, 5, 5, '演示点评：炸鸡酥脆，泡菜汤酸辣开胃。', 6)],
+        },
+    ]
+    for r in extra_restaurants:
+        for key, index in [('rating', 1), ('taste', 2), ('env', 3), ('service', 4)]:
+            r[key] = round(sum(review[index] for review in r['reviews']) / len(r['reviews']), 1)
+    added = 0
+    for r in (extra_restaurants if extra_only else restaurants + extra_restaurants):
+        if db.execute('SELECT 1 FROM restaurants WHERE name=?', (r['name'],)).fetchone():
+            continue
         cur = db.execute(
             """INSERT INTO restaurants
                (name, category, address, phone, description, avg_price,
@@ -138,6 +194,7 @@ def seed_data(db):
              r["emoji"], r["gradient"]),
         )
         rid = cur.lastrowid
+        added += 1
         for name, price, rc in r["dishes"]:
             db.execute(
                 "INSERT INTO dishes (restaurant_id, name, price, recommend_count) VALUES (?, ?, ?, ?)",
@@ -153,3 +210,4 @@ def seed_data(db):
                 (rid, author, rating, taste, env, service, content, ts),
             )
     db.commit()
+    return added

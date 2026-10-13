@@ -43,9 +43,10 @@
   </header>
   <nav class="section-nav" aria-label="餐厅导航"><div class="container">
     <a class="{{ 'is-active' if request.endpoint == 'catalog.index' }}" href="{{ url_for('catalog.index') }}">餐厅</a>
+    <a class="{{ 'is-active' if request.endpoint == 'catalog.categories' }}" href="{{ url_for('catalog.categories') }}">店铺分类</a>
     <a class="{{ 'is-active' if request.endpoint == 'discovery.rankings' }}" href="{{ url_for('discovery.rankings') }}">销量排行榜</a>
     <a class="{{ 'is-active' if request.endpoint == 'discovery.recommendations' }}" href="{{ url_for('discovery.recommendations') }}">为你推荐</a>
-    <a href="{{ url_for('catalog.index', category='火锅') }}">火锅</a><a href="{{ url_for('catalog.index', category='日料') }}">日料</a><a href="{{ url_for('catalog.index', category='甜品') }}">咖啡与甜品</a>
+    <a href="{{ url_for('catalog.index', category='火锅烧烤') }}">火锅烧烤</a><a href="{{ url_for('catalog.index', category='日韩料理') }}">日韩料理</a><a href="{{ url_for('catalog.index', category='咖啡甜品') }}">咖啡甜品</a>
   </div></nav>
 
   {% with messages = get_flashed_messages(with_categories=true) %}

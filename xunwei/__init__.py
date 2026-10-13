@@ -50,7 +50,7 @@ def create_app(config=None):
     @app.context_processor
     def photo_helpers():
         def restaurant_photo(category):
-            name = {'日料': 'sushi', '甜品': 'dessert', '西餐': 'grill', '烧烤': 'grill', '火锅': 'grill'}.get(category, 'dining')
+            name = {'日韩料理': 'sushi', '火锅烧烤': 'grill', '咖啡甜品': 'dessert', '日料': 'sushi', '韩餐': 'grill', '咖啡': 'dessert', '甜品': 'dessert', '西餐': 'grill', '烧烤': 'grill', '火锅': 'grill'}.get(category, 'dining')
             return f'images/{name}.jpg'
         return dict(restaurant_photo=restaurant_photo)
 

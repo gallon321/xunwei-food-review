@@ -25,6 +25,87 @@ class XunweiTestCase(unittest.TestCase):
         self.assertEqual(self.client.get("/").status_code, 200)
         self.assertIn("蜀香居".encode(), self.client.get("/restaurant/1").data)
 
+    def test_categories_and_combined_filters(self):
+        html = self.client.get('/categories').get_data(as_text=True)
+        self.assertIn('14 家店铺', html)
+        self.assertIn('咖啡', html)
+        html = self.client.get('/?category=咖啡&q=拿铁&location=成都&sort=price_asc').get_data(as_text=True)
+        self.assertIn('晨光咖啡馆', html)
+        self.assertIn('1 家餐厅', html)
+        self.assertNotIn('class="empty panel"', html)
+        html = self.client.get('/?category=咖啡&q=不存在的菜').get_data(as_text=True)
+        self.assertIn('没有找到匹配的餐厅', html)
+        with self.app.app_context():
+            get_db().execute("UPDATE restaurants SET category='咖啡' WHERE id=8")
+            get_db().commit()
+            from xunwei.catalog import category_summary
+            coffee = next(c for c in category_summary() if c['category'] == '咖啡')
+            self.assertEqual(coffee['shop_count'], 2)
+        self.login('admin', 'admin123')
+        self.assertIn('value="咖啡"', self.client.get('/admin/restaurant/new').get_data(as_text=True))
+
+    def test_seed_shops_preserves_records_and_is_repeatable(self):
+        with self.app.app_context():
+            db = get_db()
+            db.execute('DELETE FROM restaurants WHERE id > 8')
+            db.execute("UPDATE restaurants SET description='保留用户修改' WHERE id=1")
+            db.commit()
+            before_users = [tuple(row) for row in db.execute('SELECT * FROM users ORDER BY id')]
+            before_reviews = db.execute('SELECT COUNT(*) FROM reviews').fetchone()[0]
+        runner = self.app.test_cli_runner()
+        first = runner.invoke(args=['seed-shops'])
+        self.assertEqual(first.exit_code, 0, first.output)
+        self.assertIn('Added 6', first.output)
+        second = runner.invoke(args=['seed-shops'])
+        self.assertEqual(second.exit_code, 0, second.output)
+        self.assertIn('Added 0', second.output)
+        with self.app.app_context():
+            db = get_db()
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM restaurants').fetchone()[0], 14)
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM reviews').fetchone()[0], before_reviews + 12)
+            self.assertEqual(db.execute("SELECT description FROM restaurants WHERE id=1").fetchone()[0], '保留用户修改')
+            self.assertEqual([tuple(row) for row in db.execute('SELECT * FROM users ORDER BY id')], before_users)
+            self.assertFalse(db.execute('PRAGMA foreign_key_check').fetchall())
+        self.app.config['PRODUCTION'] = True
+        self.assertNotEqual(runner.invoke(args=['seed-shops']).exit_code, 0)
+
+    def test_empty_category_directory(self):
+        with self.app.app_context():
+            get_db().execute('DELETE FROM restaurants')
+            get_db().commit()
+        self.assertIn('暂无店铺分类', self.client.get('/categories').get_data(as_text=True))
+
+    def test_broad_shop_groups_cover_catalog_and_keep_cuisines(self):
+        from xunwei.catalog import shop_group_summary
+        with self.app.app_context():
+            groups = {row['category']: row for row in shop_group_summary()}
+            self.assertEqual(len(groups), 7)
+            self.assertEqual(sum(row['shop_count'] for row in groups.values()), 14)
+            self.assertEqual(groups['中餐']['shop_count'], 5)
+            self.assertEqual(groups['咖啡甜品']['shop_count'], 2)
+            self.assertEqual(groups['日韩料理']['shop_count'], 2)
+            self.assertEqual(groups['咖啡甜品']['avg_price'], 42)
+        html = self.client.get('/categories').get_data(as_text=True)
+        self.assertIn('7 个分类', html)
+        html = self.client.get('/?category=咖啡甜品').get_data(as_text=True)
+        self.assertIn('晨光咖啡馆', html)
+        self.assertIn('甜心烘焙', html)
+        self.assertIn('2 家餐厅', html)
+        html = self.client.get('/?category=中餐&q=鱼&location=青岛&sort=price_asc').get_data(as_text=True)
+        self.assertIn('海风蒸鲜馆', html)
+        self.assertIn('1 家餐厅', html)
+        html = self.client.get('/?category=日韩料理&favorites=1&ids=3').get_data(as_text=True)
+        self.assertIn('和风居酒屋', html)
+        self.assertNotIn('首尔石锅屋', html)
+        with self.app.app_context():
+            db = get_db()
+            db.execute("UPDATE restaurants SET category='自定义菜系' WHERE id=1")
+            db.commit()
+            groups = {row['category']: row for row in shop_group_summary()}
+            self.assertEqual(groups['其他美食']['shop_count'], 1)
+            self.assertEqual(sum(row['shop_count'] for row in groups.values()), 14)
+        self.assertIn('蜀香居', self.client.get('/?category=其他美食').get_data(as_text=True))
+
     def test_location_search_and_photo_cards(self):
         with self.app.app_context():
             get_db().execute("UPDATE restaurants SET address='搜索测试路88号' WHERE id=1")

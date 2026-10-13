@@ -6,7 +6,8 @@
 <p class="muted">完善餐厅资料，帮助食客找到心仪的好味道。</p>
 <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 {% for name,label,limit in [('name','名称',80),('category','分类',30),('address','地址',200),('phone','电话',40),('emoji','餐厅图标',12)] %}
-<label class="field"><span>{{ label }}</span><input name="{{ name }}" value="{{ restaurant[name] if restaurant else '' }}" maxlength="{{ limit }}" {{ 'required' if name in ['name','category','address'] }}></label>{% endfor %}
+<label class="field"><span>{{ label }}</span><input name="{{ name }}" value="{{ restaurant[name] if restaurant else '' }}" maxlength="{{ limit }}" {% if name == 'category' %}list="category-options" placeholder="选择已有分类或输入新分类"{% endif %} {{ 'required' if name in ['name','category','address'] }}></label>{% endfor %}
+<datalist id="category-options">{% for c in category_options %}<option value="{{ c.category }}">{{ c.shop_count }} 家店铺</option>{% endfor %}</datalist>
 <label class="field"><span>人均价格（元）</span><input name="avg_price" type="number" min="0" max="100000" step="1" value="{{ restaurant.avg_price if restaurant else 0 }}" required></label>
 <label class="field"><span>封面配色</span><select name="theme">{% for key,choice in themes.items() %}<option value="{{ key }}" {{ 'selected' if restaurant and restaurant.gradient|replace(' ','') == choice[1] }}>{{ choice[0] }}</option>{% endfor %}</select></label>
 <label class="field"><span>简介</span><textarea name="description" maxlength="2000" rows="4">{{ restaurant.description if restaurant else '' }}</textarea></label>

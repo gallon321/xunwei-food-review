@@ -8,6 +8,35 @@ from .services import recalculate_restaurant
 
 bp = Blueprint("catalog", __name__)
 
+# 大类用于浏览，restaurants.category 保留具体菜系，供搜索和推荐使用。
+SHOP_GROUPS = {
+    '中餐': ('中餐', '川菜', '粤菜', '江浙菜', '湘菜', '鲁菜', '徽菜', '闽菜', '东北菜', '新疆菜', '北京菜', '海鲜'),
+    '日韩料理': ('日韩料理', '日料', '日本料理', '韩餐', '韩国料理'),
+    '西餐': ('西餐', '法餐', '意大利菜', '牛排', '披萨'),
+    '火锅烧烤': ('火锅烧烤', '火锅', '烧烤', '烤肉'),
+    '小吃快餐': ('小吃快餐', '小吃', '快餐', '面馆', '早餐'),
+    '咖啡甜品': ('咖啡甜品', '咖啡', '甜品', '奶茶', '烘焙', '饮品'),
+    '轻食素食': ('轻食素食', '轻食', '素食', '沙拉'),
+}
+
+
+def shop_group(category):
+    return next((name for name, members in SHOP_GROUPS.items() if category in members), '其他美食')
+
+
+def shop_group_summary():
+    grouped = {}
+    for row in get_db().execute('''SELECT category, COUNT(*) AS shop_count,
+            SUM(avg_price) AS price_total FROM restaurants GROUP BY category ORDER BY category'''):
+        name = shop_group(row['category'])
+        group = grouped.setdefault(name, dict(category=name, shop_count=0, price_total=0, subcategories=[]))
+        group['shop_count'] += row['shop_count']
+        group['price_total'] += row['price_total'] or 0
+        group['subcategories'].append(row['category'])
+    for group in grouped.values():
+        group['avg_price'] = round(group['price_total'] / group['shop_count'])
+    return [grouped[name] for name in (*SHOP_GROUPS, '其他美食') if name in grouped]
+
 SORT_OPTIONS = [
     ("rating", "综合排序"),
     ("review_count", "点评最多"),
@@ -15,6 +44,20 @@ SORT_OPTIONS = [
     ("price_desc", "人均从高到低"),
     ("rating_asc", "评分从低到高"),
 ]
+
+
+def category_summary():
+    """按现有店铺统计分类；新增或调整店铺后即时更新。"""
+    return get_db().execute("""SELECT category, COUNT(*) AS shop_count,
+        ROUND(AVG(avg_price)) AS avg_price FROM restaurants
+        GROUP BY category ORDER BY shop_count DESC, category""").fetchall()
+
+
+@bp.get('/categories')
+def categories():
+    groups = shop_group_summary()
+    return render_template('categories.html', groups=groups,
+                           shop_total=sum(row['shop_count'] for row in groups))
 
 # ---------------------------------------------------------------- 首页
 @bp.route("/")
@@ -47,8 +90,11 @@ def index():
         like = f"%{q}%"
         params += [like, like, like, like, like]
     if category:
-        where.append("r.category = ?")
-        params.append(category)
+        # 同时兼容大类入口与原有具体菜系链接。
+        members = next((group['subcategories'] for group in shop_group_summary()
+                        if group['category'] == category), [category])
+        where.append('r.category IN (' + ','.join('?' for _ in members) + ')')
+        params.extend(members)
     if location:
         where.append("r.address LIKE ?")
         params.append(f"%{location}%")
@@ -87,8 +133,8 @@ def index():
     for r in restaurants:
         r["top_dishes"] = dish_map.get(r["id"], [])[:3]
 
-    categories = [row["category"] for row in
-                  db.execute("SELECT DISTINCT category FROM restaurants ORDER BY category")]
+    groups = shop_group_summary()
+    categories = [row['category'] for row in groups]
     favorite_ids = []
     if g.user:
         favorite_ids = [row[0] for row in db.execute(
@@ -103,7 +149,9 @@ def index():
 
     return render_template(
         "index.html", restaurants=restaurants, categories=categories,
+        category_counts={row['category']: row['shop_count'] for row in groups},
         q=q, category=category, sort=sort, sort_options=SORT_OPTIONS,
+        active_group=shop_group(category) if category and category not in SHOP_GROUPS else category,
         location=location,
         total=total, page=page, pages=max(1, (total + per_page - 1) // per_page),
         favorite_ids=favorite_ids,

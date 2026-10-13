@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}店铺分类 · 寻味{% endblock %}
+{% block content %}
+<section class="directory-heading"><div><p class="section-overline">寻味 / 分类</p><h1>按分类，找到想吃的</h1><p class="heading-note">{{ groups|length }} 个分类 · {{ shop_total }} 家店铺，从一杯咖啡到一顿聚餐。</p></div><a class="text-link" href="{{ url_for('catalog.index') }}">浏览全部店铺 →</a></section>
+{% if groups %}
+<div class="category-grid">
+  {% for c in groups %}
+  <a class="category-card" href="{{ url_for('catalog.index', category=c.category, _anchor='restaurant-results') }}">
+    <img src="{{ url_for('static', filename=restaurant_photo(c.category)) }}" alt="" width="600" height="300" loading="lazy">
+    <div class="category-card-copy"><h2>{{ c.category }}</h2><p>{{ c.shop_count }} 家店铺 · 平均人均 ¥{{ c.avg_price|int }}</p><p class="category-subtypes">{{ c.subcategories|join(' / ') }}</p><span>查看店铺 →</span></div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}<div class="empty panel"><h2>暂无店铺分类</h2><p>添加店铺并填写分类后，会在这里展示。</p></div>{% endif %}
+{% endblock %}

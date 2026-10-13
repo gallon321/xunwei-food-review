@@ -6,6 +6,16 @@ from .migrations import backup_database
 
 
 def register_commands(app):
+    @app.cli.command('seed-shops')
+    def seed_shops():
+        """Add six fictional shops without replacing existing records or accounts."""
+        if app.config['PRODUCTION']:
+            raise click.ClickException('Demo data is disabled in production.')
+        init_db()
+        from .seed import seed_data
+        added = seed_data(get_db(), extra_only=True)
+        click.echo(f'Added {added} sample shops (existing names skipped).')
+
     @app.cli.command('init-db')
     @click.option('--demo', is_flag=True, help='Initialize a NEW demo database with sample accounts.')
     def initialize(demo):

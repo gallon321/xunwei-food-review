@@ -9,9 +9,9 @@
 <div class="directory-layout">
   <div class="directory-main">
     <section class="filter-board" aria-label="餐厅筛选">
-      <div class="filter-line"><span class="filter-label">菜系</span><div class="cats">
+      <div class="filter-line"><span class="filter-label">分类</span><div class="cats">
         <a class="chip {{ 'is-active' if not category }}" href="{{ url_for('catalog.index', q=q, location=location, sort=sort, favorites=1 if favorites_only else 0, ids=guest_ids) }}">全部</a>
-        {% for c in categories %}<a class="chip {{ 'is-active' if category == c }}" href="{{ url_for('catalog.index', q=q, location=location, category=c, sort=sort, favorites=1 if favorites_only else 0, ids=guest_ids) }}">{{ c }}</a>{% endfor %}
+        {% for c in categories %}<a class="chip {{ 'is-active' if active_group == c }}" {% if active_group == c %}aria-current="true"{% endif %} href="{{ url_for('catalog.index', q=q, location=location, category=c, sort=sort, favorites=1 if favorites_only else 0, ids=guest_ids) }}">{{ c }} <small>{{ category_counts[c] }}</small></a>{% endfor %}
       </div></div>
       <div class="filter-line filter-line--bottom"><p class="result-count">{% if q %}“{{ q }}” · {% endif %}{{ total }} 家餐厅{% if favorites_only %} · 仅收藏{% endif %}</p><div class="toolbar__right">
         <button class="btn-ghost {{ 'is-active' if favorites_only }}" id="fav-filter" type="button">{{ '显示全部' if favorites_only else '只看收藏' }}</button>

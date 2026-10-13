@@ -78,7 +78,7 @@ class ProjectTest(unittest.TestCase):
             self.assertEqual(get_db().execute('SELECT COUNT(*) FROM restaurants').fetchone()[0], 0)
         self.assertEqual(runner.invoke(args=['init-db', '--demo']).exit_code, 0)
         with fresh.app_context():
-            self.assertEqual(get_db().execute('SELECT COUNT(*) FROM restaurants').fetchone()[0], 8)
+            self.assertEqual(get_db().execute('SELECT COUNT(*) FROM restaurants').fetchone()[0], 14)
             self.assertEqual(get_db().execute('SELECT COUNT(*) FROM users').fetchone()[0], 2)
 
     def test_backup_and_version(self):
@@ -87,7 +87,7 @@ class ProjectTest(unittest.TestCase):
             init_db()
             self.assertEqual(get_db().execute('PRAGMA user_version').fetchone()[0], SCHEMA_VERSION)
         with closing(sqlite3.connect(target)) as backup:
-            self.assertEqual(backup.execute('SELECT COUNT(*) FROM restaurants').fetchone()[0], 8)
+            self.assertEqual(backup.execute('SELECT COUNT(*) FROM restaurants').fetchone()[0], 14)
 
     def test_cli_admin_and_production_config(self):
         runner = self.app.test_cli_runner()
