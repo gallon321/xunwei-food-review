@@ -6,6 +6,16 @@ from .migrations import backup_database
 
 
 def register_commands(app):
+    @app.cli.command('migrate-sqlite')
+    @click.option('--source', required=True, type=click.Path(exists=True, dir_okay=False), help='Existing SQLite database; opened read-only.')
+    def migrate_sqlite_command(source):
+        """Import existing data into an empty MySQL database, retaining IDs and accounts."""
+        from .import_sqlite import migrate_sqlite
+        counts = migrate_sqlite(source)
+        for table, count in counts.items():
+            click.echo(f'{table}: {count}')
+        click.echo('Migration committed. Original SQLite file was not changed.')
+
     @app.cli.command('seed-shops')
     def seed_shops():
         """Add six fictional shops without replacing existing records or accounts."""
@@ -49,5 +59,5 @@ def register_commands(app):
 
     @app.cli.command('backup-db')
     def backup():
-        """Create a consistent SQLite backup without stopping the application."""
+        """Create a consistent backup of the configured database."""
         click.echo(str(backup_database(get_db())))

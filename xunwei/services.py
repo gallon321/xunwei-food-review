@@ -14,6 +14,6 @@ def recalculate_restaurant(rid):
                            FROM reviews WHERE restaurant_id=? AND status='visible'""", (rid,)).fetchone()
     if scores[0] is not None:
         db.execute("UPDATE restaurants SET rating=?,taste_score=?,environment_score=?,service_score=? WHERE id=?",
-                   tuple(round(v, 1) for v in scores) + (rid,))
+                   tuple(round(scores[i], 1) for i in range(4)) + (rid,))
     else:
         db.execute("UPDATE restaurants SET rating=0,taste_score=0,environment_score=0,service_score=0 WHERE id=?", (rid,))

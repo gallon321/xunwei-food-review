@@ -1,6 +1,13 @@
 # 寻味 · 美食点评
 
-面向中文用户的餐厅发现与点评项目，使用 Python、Flask、SQLite、Jinja2 和原生 CSS/JavaScript。包含用户端及管理员后台，支持沿用原 Demo 数据。
+面向中文用户的餐厅发现与点评项目，使用 Python、Flask、MySQL、Jinja2 和原生 CSS/JavaScript。包含用户端及管理员后台，支持沿用原 Demo 数据。
+
+
+## MySQL 数据库（当前默认）
+
+项目默认连接 MySQL，SQLite 仅保留用于原数据迁移和隔离测试。请先阅读 [MySQL 配置与迁移](docs/mysql.md)，配置连接后再执行下方初始化或启动命令。
+
+已有 `xunwei.db` 时，先运行 `python -m flask --app app migrate-sqlite --source xunwei.db` 导入到空 MySQL 库，然后启动项目；不要先导入演示数据。迁移保留用户、密码哈希、餐厅、点评、收藏和销量，并校验全部导入数据，原文件保持不变。
 
 ## 快速体验
 
@@ -44,7 +51,7 @@ python serve.py
 
 ## 本机运行
 
-本机已有业务数据库时，启动会自动备份并迁移，原有餐厅与点评保留。Windows 当前开发环境可使用：
+本机已有 SQLite 数据库时，按上方 MySQL 指南显式导入；启动只初始化当前配置的数据库。Windows 当前开发环境可使用：
 
 ```powershell
 D:\python\python.exe -m pip install -r requirements.txt
@@ -81,11 +88,15 @@ python -m venv .venv
 
 ## 配置
 
-配置从系统环境变量读取，不自动加载 .env。
+MySQL 配置可从本机 instance/mysql.json 读取，系统环境变量优先覆盖；不自动加载 .env。
 
 | 环境变量 | 用途 |
 | --- | --- |
-| XUNWEI_DATABASE | SQLite 绝对路径，默认项目下 xunwei.db；父目录须存在 |
+| XUNWEI_DB_BACKEND | 默认 mysql；sqlite 仅用于旧库维护/测试 |
+| MYSQL_HOST / MYSQL_PORT | 默认 127.0.0.1 / 3306 |
+| MYSQL_USER / MYSQL_PASSWORD | MySQL 用户名（默认 xunwei）和密码 |
+| MYSQL_DATABASE | MySQL 库名，默认 xunwei；需事先创建 |
+| XUNWEI_DATABASE | 仅 sqlite 后端使用的文件路径 |
 | SECRET_KEY | 会话签名密钥；生产环境必须设置至少 32 字符的随机值 |
 | XUNWEI_ENV | production 启用生产校验及 Secure Cookie |
 | XUNWEI_HOST | 服务监听地址，默认 127.0.0.1 |
@@ -93,7 +104,7 @@ python -m venv .venv
 
 本地未设置 SECRET_KEY 时，在 `instance/secret.key` 持久化随机密钥；该文件不应提交或共享。
 生产部署使用全新数据库、独立管理员、HTTPS 反向代理及固定随机密钥；`production` 模式禁止导入演示账号。
-本次仅交付本地项目与启动能力，尚未部署公网；SQLite 适合当前单机规模。
+本次仅交付本地项目与启动能力，尚未部署公网。
 
 ## 备份与测试
 
@@ -102,7 +113,7 @@ python -m flask --app app backup-db
 python -m unittest discover -s tests -v
 ```
 
-备份位于数据库旁的 `backups/`，文件名包含时间。恢复前停止服务，并保留当前库副本，再将备份复制至配置的数据库路径。
+MySQL 备份保存到项目 `backups/` 的 `.sql` 文件，恢复到空库的方法见 MySQL 指南。SQLite 后端仍生成 `.db` 备份。备份期间不要执行建表或改表操作。
 自动化测试均使用临时数据库。
 
 ## 目录结构

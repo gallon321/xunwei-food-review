@@ -107,7 +107,7 @@ class ProjectTest(unittest.TestCase):
         with closing(sqlite3.connect(path)) as db:
             db.executescript((Path(__file__).parent / 'fixtures' / 'legacy.sql').read_text(encoding='utf-8'))
             db.commit()
-        legacy = create_app(dict(DATABASE=str(path), SECRET_KEY='migration-test', SEED_DEMO=False))
+        legacy = create_app(dict(DATABASE_BACKEND='sqlite', DATABASE=str(path), SECRET_KEY='migration-test', SEED_DEMO=False))
         with legacy.app_context():
             init_db()
             init_db()

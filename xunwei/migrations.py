@@ -18,6 +18,9 @@ def backup_before_upgrade(db):
 
 
 def backup_database(db, label='backup'):
+    if current_app.config['DATABASE_BACKEND'] == 'mysql':
+        from .mysql import backup_database as mysql_backup
+        return mysql_backup(label)
     source = Path(current_app.config['DATABASE']).resolve()
     folder = source.parent / 'backups'
     folder.mkdir(exist_ok=True)

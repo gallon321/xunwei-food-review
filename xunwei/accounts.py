@@ -1,6 +1,6 @@
 from datetime import datetime
 import hashlib
-import sqlite3
+from .db import IntegrityErrors
 import time
 from flask import (Blueprint, current_app as app, abort, flash, g, jsonify,
                    redirect, render_template, request, session, url_for)
@@ -28,7 +28,7 @@ def register():
             try:
                 cur = get_db().execute("INSERT INTO users (username,password_hash,created_at) VALUES (?,?,?)",
                                        (username, generate_password_hash(password), datetime.now().strftime("%Y-%m-%d %H:%M")))
-            except sqlite3.IntegrityError:
+            except IntegrityErrors:
                 get_db().rollback()
                 flash('用户名已存在', 'error')
                 return render_template('auth.html', mode='register'), 400

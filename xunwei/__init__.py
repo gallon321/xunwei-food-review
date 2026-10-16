@@ -1,5 +1,6 @@
 """Application factory. No database writes happen merely by importing this package."""
 import os
+import json
 import secrets
 from pathlib import Path
 from flask import Flask, jsonify, render_template
@@ -10,8 +11,18 @@ ROOT = Path(__file__).resolve().parent.parent
 def create_app(config=None):
     app = Flask(__name__, template_folder=str(ROOT / 'templates'), static_folder=str(ROOT / 'static'))
     production = os.environ.get('XUNWEI_ENV') == 'production'
+    local_mysql_file = ROOT / 'instance' / 'mysql.json'
+    local_mysql = json.loads(local_mysql_file.read_text(encoding='utf-8')) if local_mysql_file.exists() else {}
+    def mysql_setting(name, default):
+        return os.environ.get(name, local_mysql.get(name, default))
     app.config.from_mapping(
         DATABASE=os.environ.get('XUNWEI_DATABASE', str(ROOT / 'xunwei.db')),
+        DATABASE_BACKEND=os.environ.get('XUNWEI_DB_BACKEND', 'mysql'),
+        MYSQL_HOST=mysql_setting('MYSQL_HOST', '127.0.0.1'),
+        MYSQL_PORT=int(mysql_setting('MYSQL_PORT', '3306')),
+        MYSQL_USER=mysql_setting('MYSQL_USER', 'xunwei'),
+        MYSQL_PASSWORD=mysql_setting('MYSQL_PASSWORD', ''),
+        MYSQL_DATABASE=mysql_setting('MYSQL_DATABASE', 'xunwei'),
         SECRET_KEY=os.environ.get('SECRET_KEY'), SEED_DEMO=False,
         CSRF_ENABLED=True, REVIEWS_PER_PAGE=5,
         SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax',
@@ -20,6 +31,9 @@ def create_app(config=None):
     )
     if config:
         app.config.update(config)
+        # Existing isolated SQLite tests opt in by passing a file path.
+        if app.testing and 'DATABASE' in config and 'DATABASE_BACKEND' not in config:
+            app.config['DATABASE_BACKEND'] = 'sqlite'
     if not app.config['SECRET_KEY']:
         if app.config['PRODUCTION']:
             raise RuntimeError('Production requires a SECRET_KEY of at least 32 characters.')

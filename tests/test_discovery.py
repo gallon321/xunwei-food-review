@@ -69,8 +69,7 @@ class DiscoveryTest(unittest.TestCase):
             self.assertFalse(personalized)
             self.assertTrue(initial)
             db.execute("INSERT INTO favorites VALUES (?,?,?)", (user_id, 1, '2026-10-10'))
-            db.execute("INSERT INTO restaurants(name,category,address,avg_price) VALUES ('川菜新店','川菜','测试地址',65)")
-            new_id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
+            new_id = db.execute("INSERT INTO restaurants(name,category,address,avg_price) VALUES ('川菜新店','川菜','测试地址',65)").lastrowid
             rows, personalized = recommend_restaurants(user_id)
             self.assertTrue(personalized)
             self.assertEqual(rows[0]['id'], new_id)

@@ -1,10 +1,19 @@
 import sqlite3
+from pymysql import IntegrityError as MySQLIntegrityError
+
+IntegrityErrors = (sqlite3.IntegrityError, MySQLIntegrityError)
 from datetime import datetime
 from flask import current_app as app, g
 from .seed import seed_data
 
 def get_db():
     if "db" not in g:
+        if app.config['DATABASE_BACKEND'] == 'mysql':
+            from .mysql import connect
+            g.db = connect(app.config)
+            return g.db
+        if app.config['DATABASE_BACKEND'] != 'sqlite':
+            raise RuntimeError('Unsupported DATABASE_BACKEND')
         g.db = sqlite3.connect(app.config["DATABASE"], timeout=15)
         g.db.row_factory = sqlite3.Row
         g.db.execute("PRAGMA foreign_keys = ON")
@@ -19,6 +28,10 @@ def close_db(exc):
 
 def init_db():
     db = get_db()
+    if app.config['DATABASE_BACKEND'] == 'mysql':
+        from .mysql import initialize
+        initialize(db)
+        return
     from .migrations import backup_before_upgrade
     backup_before_upgrade(db)
     db.executescript(
