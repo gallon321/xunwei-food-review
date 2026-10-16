@@ -23,6 +23,7 @@
         </form>
       </div></div>
     </section>
+    <p class="muted">营业中的店铺优先展示，同一营业状态内按所选方式排序 · 北京时间</p>
     {% if restaurants %}<div class="restaurant-list">{% for r in restaurants %}{{ restaurant_card(r, favorite_ids, true) }}{% endfor %}</div>
     {% if pages > 1 %}<nav class="pagination" aria-label="餐厅列表分页">{% for p in range(1,pages+1) %}<a class="{{ 'is-active' if p == page }}" href="{{ url_for('catalog.index', q=q, location=location, category=category, sort=sort, page=p, favorites=1 if favorites_only else 0, ids=guest_ids) }}">{{ p }}</a>{% endfor %}</nav>{% endif %}
     {% else %}<div class="empty panel"><h2>没有找到匹配的餐厅</h2><p>换一个关键词，或试试其他菜系。</p><a class="btn" href="{{ url_for('catalog.index') }}">清除筛选</a></div>{% endif %}

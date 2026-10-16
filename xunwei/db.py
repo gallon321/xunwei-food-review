@@ -42,6 +42,8 @@ def init_db():
             category TEXT NOT NULL,
             address TEXT NOT NULL,
             phone TEXT,
+            opening_time TEXT,
+            closing_time TEXT,
             description TEXT,
             avg_price INTEGER DEFAULT 0,
             rating REAL DEFAULT 0,

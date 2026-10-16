@@ -2,6 +2,7 @@
 {% block title %}菜品管理 · 寻味{% endblock %}
 {% block content %}
 <nav class="breadcrumb"><a href="{{ url_for('admin.admin_dashboard') }}">管理后台</a> › 菜品管理</nav>
+<p><a class="btn-ghost" href="{{ url_for('admin.dish_reviews', rid=restaurant.id) }}">管理菜品评价</a> <a class="btn-ghost" href="{{ url_for('catalog.detail', rid=restaurant.id, _anchor='shop-menu') }}">查看用户端菜品</a></p>
 <section class="page-head"><h1>{{ restaurant.name }} · 菜品管理</h1><p class="muted">在这里更新餐厅的招牌菜和价格，保存后会展示在餐厅详情中。</p></section>
 <div class="profile-grid"><section class="panel"><h2 class="panel__title">已添加菜品</h2>
 {% for d in dishes %}<div class="review">

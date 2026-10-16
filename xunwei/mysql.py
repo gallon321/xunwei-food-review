@@ -7,7 +7,7 @@ import pymysql
 from flask import current_app
 
 TABLES = ('restaurants', 'users', 'dishes', 'reviews', 'favorites', 'app_meta',
-          'audit_logs', 'login_attempts', 'daily_sales')
+          'audit_logs', 'login_attempts', 'daily_sales', 'dish_reviews')
 
 
 class Row(dict):
@@ -82,9 +82,15 @@ def initialize(db):
         if statement.strip():
             db.execute(statement)
     version = db.execute("SELECT value FROM app_meta WHERE `key`='schema_version'").fetchone()
-    if version and int(version[0]) > 2:
+    if version and int(version[0]) > 4:
         raise RuntimeError('Database schema is newer than this application.')
-    db.execute("INSERT INTO app_meta (`key`,value) VALUES ('schema_version','2') ON DUPLICATE KEY UPDATE value='2'")
+    columns = {row['Field'] for row in db.execute('SHOW COLUMNS FROM restaurants')}
+    missing = [name for name in ('opening_time', 'closing_time') if name not in columns]
+    if missing and not current_app.testing:
+        backup_database('before-upgrade')
+    for name in missing:
+        db.execute(f'ALTER TABLE restaurants ADD COLUMN {name} VARCHAR(5) NULL')
+    db.execute("INSERT INTO app_meta (`key`,value) VALUES ('schema_version','4') ON DUPLICATE KEY UPDATE value='4'")
     if current_app.config.get('SEED_DEMO'):
         from werkzeug.security import generate_password_hash
         for username, password, role in (('admin', 'admin123', 'admin'), ('foodie', 'foodie123', 'user')):

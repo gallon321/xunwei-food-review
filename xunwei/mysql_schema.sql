@@ -5,6 +5,8 @@
             category VARCHAR(255) NOT NULL,
             address VARCHAR(255) NOT NULL,
             phone VARCHAR(255),
+            opening_time VARCHAR(5),
+            closing_time VARCHAR(5),
             description TEXT,
             avg_price INTEGER DEFAULT 0,
             rating REAL DEFAULT 0,
@@ -67,3 +69,12 @@ CREATE TABLE IF NOT EXISTS daily_sales (restaurant_id INTEGER NOT NULL, sale_dat
  updated_at VARCHAR(32) NOT NULL, PRIMARY KEY(restaurant_id,sale_date),
  FOREIGN KEY(restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
  INDEX idx_daily_sales_date(sale_date,restaurant_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS dish_reviews (
+ id INTEGER PRIMARY KEY AUTO_INCREMENT,
+ dish_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
+ rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5), content TEXT NOT NULL,
+ created_at VARCHAR(255) NOT NULL, status VARCHAR(16) NOT NULL DEFAULT 'visible',
+ INDEX idx_dish_reviews(dish_id,status,created_at,id),
+ FOREIGN KEY(dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

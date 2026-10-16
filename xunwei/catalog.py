@@ -5,8 +5,16 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from .db import get_db
 from .security import login_required, admin_required, safe_next
 from .services import recalculate_restaurant
+from .hours import OPEN_SQL, business_hours, current_time
 
 bp = Blueprint("catalog", __name__)
+
+
+@bp.app_context_processor
+def hours_context():
+    # A single clock snapshot for every card rendered in the request.
+    now = current_time()
+    return dict(business_hours=lambda row: business_hours(row, now))
 
 # 大类用于浏览，restaurants.category 保留具体菜系，供搜索和推荐使用。
 SHOP_GROUPS = {
@@ -107,18 +115,19 @@ def index():
         "price_desc": "r.avg_price DESC, r.rating DESC",
         "rating_asc": "r.rating ASC, review_count DESC",
     }
-    order_sql = order_map.get(sort, order_map["rating"])
+    order_sql = 'is_open DESC, ' + order_map.get(sort, order_map["rating"]) + ', r.id ASC'
+    now = current_time()
 
     total = db.execute(f"SELECT COUNT(*) FROM restaurants r {where_sql}", params).fetchone()[0]
     page = min(page, max(1, (total + per_page - 1) // per_page))
     rows = db.execute(
-        f"""SELECT r.*, COUNT(rv.id) AS review_count
+        f"""SELECT r.*, COUNT(rv.id) AS review_count, {OPEN_SQL} AS is_open
             FROM restaurants r
             LEFT JOIN reviews rv ON rv.restaurant_id = r.id AND rv.status='visible'
             {where_sql}
             GROUP BY r.id
             ORDER BY {order_sql} LIMIT ? OFFSET ?"""
-        , params + [per_page, (page - 1) * per_page],
+        , [now] * 4 + params + [per_page, (page - 1) * per_page],
     ).fetchall()
 
     # 附加每家的招牌推荐菜（按推荐数取前 3）
@@ -169,9 +178,19 @@ def detail(rid):
         abort(404)
 
     dishes = db.execute(
-        "SELECT * FROM dishes WHERE restaurant_id = ? ORDER BY recommend_count DESC",
+        """SELECT d.*, COUNT(dr.id) AS review_count, ROUND(AVG(dr.rating),1) AS rating
+        FROM dishes d LEFT JOIN dish_reviews dr ON dr.dish_id=d.id AND dr.status='visible'
+        WHERE d.restaurant_id=? GROUP BY d.id ORDER BY d.recommend_count DESC,d.id""",
         (rid,),
     ).fetchall()
+    dish_previews = {}
+    for review in db.execute('''SELECT * FROM (
+        SELECT dr.*,u.username AS display_author,
+        ROW_NUMBER() OVER (PARTITION BY dr.dish_id ORDER BY dr.created_at DESC,dr.id DESC) AS position
+        FROM dish_reviews dr JOIN users u ON u.id=dr.user_id
+        JOIN dishes d ON d.id=dr.dish_id WHERE d.restaurant_id=? AND dr.status='visible'
+        ) recent WHERE position<=2 ORDER BY dish_id,position''', (rid,)):
+        dish_previews.setdefault(review['dish_id'], []).append(review)
     page = max(request.args.get("page", 1, type=int), 1)
     per_page = app.config["REVIEWS_PER_PAGE"]
     total = db.execute("SELECT COUNT(*) FROM reviews WHERE restaurant_id=? AND status='visible'", (rid,)).fetchone()[0]
@@ -192,7 +211,28 @@ def detail(rid):
         "SELECT 1 FROM favorites WHERE user_id=? AND restaurant_id=?", (g.user["id"], rid)).fetchone())
 
     return render_template(
-        "detail.html", r=r, dishes=dishes, reviews=reviews,
+        "detail.html", r=r, dishes=dishes, dish_previews=dish_previews, reviews=reviews,
         dist=dist, total=total, page=page,
         pages=max(1, (total + per_page - 1) // per_page), is_favorite=is_favorite,
     )
+
+
+@bp.get('/restaurant/<int:rid>/dish/<int:did>')
+def dish_detail(rid, did):
+    db = get_db()
+    restaurant = db.execute('SELECT * FROM restaurants WHERE id=?', (rid,)).fetchone()
+    dish = db.execute('''SELECT d.*,COUNT(dr.id) AS review_count,ROUND(AVG(dr.rating),1) AS rating
+        FROM dishes d LEFT JOIN dish_reviews dr ON dr.dish_id=d.id AND dr.status='visible'
+        WHERE d.id=? AND d.restaurant_id=? GROUP BY d.id''', (did, rid)).fetchone()
+    if restaurant is None or dish is None:
+        abort(404)
+    total = dish['review_count']
+    per_page = app.config['REVIEWS_PER_PAGE']
+    pages = max(1, (total + per_page - 1) // per_page)
+    page = min(max(request.args.get('page', 1, type=int), 1), pages)
+    reviews = db.execute('''SELECT dr.*,u.username AS display_author FROM dish_reviews dr
+        JOIN users u ON u.id=dr.user_id WHERE dr.dish_id=? AND dr.status='visible'
+        ORDER BY dr.created_at DESC,dr.id DESC LIMIT ? OFFSET ?''',
+        (did, per_page, (page - 1) * per_page)).fetchall()
+    return render_template('dish_detail.html', r=restaurant, dish=dish, reviews=reviews,
+                           page=page, pages=pages, total=total)

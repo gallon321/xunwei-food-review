@@ -14,9 +14,11 @@
       <h1>{{ r.name }} <span class="badge">{{ r.category }}</span></h1>
       <div class="detail-rating">{{ stars(r.rating, 'lg') }}<b>{{ r.rating }}</b><a href="#customer-reviews">{{ total }} 条点评</a></div>
       <p class="detail-hero__meta">{{ r.address }} &nbsp;·&nbsp; 人均 ¥{{ r.avg_price }} &nbsp;·&nbsp; {{ r.phone }}</p>
+      {% set hours = business_hours(r) %}<p class="business-hours"><span class="business-status {{ 'is-open' if hours.is_open }}">{{ hours.label }}</span><span>{{ hours.schedule }}{% if hours.schedule %}（北京时间）{% endif %}</span></p>
       <p class="detail-hero__desc">{{ r.description }}</p>
       <button class="fav fav--detail {{ 'is-active' if is_favorite }}" data-fav="{{ r.id }}" type="button" aria-label="收藏{{ r.name }}"><span class="favorite-off">收藏餐厅</span><span class="favorite-on">已收藏</span></button>
       <a class="btn review-cta" href="#write-review">★ 写点评</a>
+      <a class="btn-ghost" href="#shop-menu">查看菜品与评价</a>
     </div>
   </div>
 </div>
@@ -24,6 +26,20 @@
 <div class="detail-grid">
   <!-- 左栏 -->
   <div class="detail-main">
+    <section class="panel" id="shop-menu">
+      <div class="section-head"><h2 class="panel__title">店铺菜品 <span class="muted">({{ dishes|length }})</span></h2>{% if g.user and g.user.role == 'admin' %}<a href="{{ url_for('admin.dishes', rid=r.id) }}">管理菜品</a>{% endif %}</div>
+      <p class="muted">看看每道菜的价格和食客评价，菜品评分独立统计。</p>
+      <div class="menu-list">
+      {% for d in dishes %}
+      <article class="menu-item" id="dish-{{ d.id }}">
+        <div class="menu-item__heading"><h3><a href="{{ url_for('catalog.dish_detail', rid=r.id, did=d.id) }}">{{ d.name }}</a></h3><strong class="menu-price">¥{{ d.price }}</strong></div>
+        <div class="menu-rating">{% if d.review_count %}{{ stars(d.rating, 'sm') }}<b>{{ d.rating }} 分</b><span>{{ d.review_count }} 条评价</span>{% else %}<span>暂无评分 · 0 条评价</span>{% endif %}<span>{{ d.recommend_count }} 人推荐</span></div>
+        {% for rv in dish_previews.get(d.id, []) %}<div class="menu-review"><b>{{ rv.display_author }}</b><span>{{ rv.rating }} 星</span><p>{{ rv.content }}</p></div>{% else %}<p class="muted">还没有这道菜的评价，尝过后来说说口味吧。</p>{% endfor %}
+        <div class="menu-actions"><a href="{{ url_for('catalog.dish_detail', rid=r.id, did=d.id) }}">查看全部评价 →</a><a class="btn-ghost" href="{{ url_for('catalog.dish_detail', rid=r.id, did=d.id, _anchor='write-dish-review') }}">评价这道菜</a></div>
+      </article>
+      {% else %}<p class="muted">店铺暂未添加菜品。</p>{% endfor %}
+      </div>
+    </section>
     <section class="panel">
       <h2 class="panel__title">综合评分</h2>
       <div class="score-overview">
@@ -53,19 +69,6 @@
         </div>
         {% endfor %}
       </div>
-    </section>
-
-    <section class="panel">
-      <h2 class="panel__title">推荐菜</h2>
-      <ul class="dish-list">
-        {% for d in dishes %}
-        <li>
-          <span class="dish__name">{{ d.name }}</span>
-          <span class="dish__rec">{{ d.recommend_count }} 人推荐</span>
-          <span class="dish__price">¥{{ d.price }}</span>
-        </li>
-        {% endfor %}
-      </ul>
     </section>
 
     <section class="panel">

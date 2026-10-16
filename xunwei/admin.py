@@ -6,6 +6,7 @@ from .db import get_db
 from .security import login_required, admin_required, safe_next
 from .services import recalculate_restaurant
 from .services import audit
+from .hours import valid_hours
 
 bp = Blueprint("admin", __name__)
 THEMES = {
@@ -99,12 +100,15 @@ def admin_dashboard():
 
 def restaurant_form_data():
     data = {key: (request.form.get(key) or "").strip() for key in
-            ("name", "category", "address", "phone", "description", "avg_price", "emoji", "gradient")}
+            ("name", "category", "address", "phone", "description", "avg_price", "emoji", "gradient", "opening_time", "closing_time")}
     data['gradient'] = THEMES.get(request.form.get('theme'), THEMES['warm'])[1]
     return data
 
 
 def valid_restaurant(data):
+    if not valid_hours(data['opening_time'], data['closing_time']):
+        flash('营业时间须同时填写开始和结束时间，格式为 HH:MM；也可同时留空。', 'error')
+        return False
     try:
         price = int(data["avg_price"] or 0)
     except ValueError:
@@ -124,10 +128,11 @@ def admin_restaurant_new():
         data = restaurant_form_data()
         if valid_restaurant(data):
             cur = get_db().execute("""INSERT INTO restaurants
-                (name,category,address,phone,description,avg_price,rating,taste_score,environment_score,service_score,emoji,gradient)
-                VALUES (?,?,?,?,?,?,0,0,0,0,?,?)""", (data["name"], data["category"], data["address"], data["phone"],
+                (name,category,address,phone,description,avg_price,rating,taste_score,environment_score,service_score,emoji,gradient,opening_time,closing_time)
+                VALUES (?,?,?,?,?,?,0,0,0,0,?,?,?,?)""", (data["name"], data["category"], data["address"], data["phone"],
                 data["description"], int(data["avg_price"] or 0), data["emoji"] or "🍽️",
-                data["gradient"] or "linear-gradient(135deg,#ff9a5a,#e6533f)"))
+                data["gradient"] or "linear-gradient(135deg,#ff9a5a,#e6533f)",
+                data['opening_time'] or None, data['closing_time'] or None))
             audit('创建餐厅', cur.lastrowid)
             get_db().commit()
             flash("餐厅已创建", "success")
@@ -145,9 +150,10 @@ def admin_restaurant_edit(rid):
     if request.method == "POST":
         data = restaurant_form_data()
         if valid_restaurant(data):
-            get_db().execute("""UPDATE restaurants SET name=?,category=?,address=?,phone=?,description=?,avg_price=?,emoji=?,gradient=? WHERE id=?""",
+            get_db().execute("""UPDATE restaurants SET name=?,category=?,address=?,phone=?,description=?,avg_price=?,emoji=?,gradient=?,opening_time=?,closing_time=? WHERE id=?""",
                 (data["name"], data["category"], data["address"], data["phone"], data["description"],
-                 int(data["avg_price"] or 0), data["emoji"] or "🍽️", data["gradient"], rid))
+                 int(data["avg_price"] or 0), data["emoji"] or "🍽️", data["gradient"],
+                 data['opening_time'] or None, data['closing_time'] or None, rid))
             audit('编辑餐厅', rid)
             get_db().commit()
             flash("餐厅已更新", "success")
@@ -236,6 +242,39 @@ def delete_dish(rid, dish_id):
     get_db().commit()
     flash('菜品已删除', 'success')
     return redirect(url_for('admin.dishes', rid=rid))
+
+
+@bp.get('/admin/restaurant/<int:rid>/dish-reviews')
+@admin_required
+def dish_reviews(rid):
+    db = get_db()
+    restaurant = db.execute('SELECT * FROM restaurants WHERE id=?', (rid,)).fetchone()
+    if restaurant is None:
+        abort(404)
+    total = db.execute('''SELECT COUNT(*) FROM dish_reviews dr JOIN dishes d ON d.id=dr.dish_id
+        WHERE d.restaurant_id=?''', (rid,)).fetchone()[0]
+    pages = max(1, (total + 19) // 20)
+    page = min(max(request.args.get('page', 1, type=int), 1), pages)
+    rows = db.execute('''SELECT dr.*,d.name AS dish_name,u.username FROM dish_reviews dr
+        JOIN dishes d ON d.id=dr.dish_id JOIN users u ON u.id=dr.user_id
+        WHERE d.restaurant_id=? ORDER BY dr.id DESC LIMIT 20 OFFSET ?''', (rid, (page - 1) * 20)).fetchall()
+    return render_template('dish_reviews_admin.html', restaurant=restaurant, reviews=rows, page=page, pages=pages)
+
+
+@bp.post('/admin/dish-review/<int:review_id>/toggle')
+@admin_required
+def toggle_dish_review(review_id):
+    db = get_db()
+    review = db.execute('''SELECT dr.*,d.restaurant_id FROM dish_reviews dr
+        JOIN dishes d ON d.id=dr.dish_id WHERE dr.id=?''', (review_id,)).fetchone()
+    if review is None:
+        abort(404)
+    status = 'hidden' if review['status'] == 'visible' else 'visible'
+    db.execute('UPDATE dish_reviews SET status=? WHERE id=?', (status, review_id))
+    audit('隐藏菜品评价' if status == 'hidden' else '恢复菜品评价', review_id)
+    db.commit()
+    flash('菜品评价状态已更新，隐藏评价不参与评分。', 'success')
+    return redirect(url_for('admin.dish_reviews', rid=review['restaurant_id']))
 
 
 @bp.get('/admin/audit')

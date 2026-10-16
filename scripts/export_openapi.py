@@ -28,6 +28,8 @@ REVIEW = dict(rating=SCORE, taste_score=SCORE, environment_score=SCORE,
               service_score=SCORE, content=string(minLength=5, maxLength=500, example='菜品味道很好，服务也很热情。'))
 RESTAURANT = dict(name=string(maxLength=80), category=string(maxLength=30),
                   address=string(maxLength=200), phone=string(maxLength=40),
+                  opening_time=string(description='每日开始营业时间 HH:MM（北京时间），与 closing_time 同填或同空'),
+                  closing_time=string(description='每日结束营业时间 HH:MM；早于开始表示次日结束，相同表示全天营业'),
                   description=string(maxLength=2000), avg_price=integer(minimum=0, maximum=100000),
                   emoji=string(maxLength=12), theme=string(enum=['warm', 'green', 'purple', 'pink'], default='warm'))
 AUTH = dict(username=string(), password=string(format='password'), next=string(description='站内跳转路径，默认首页'))
@@ -37,6 +39,11 @@ REDIRECT = {'description': '重定向；302 不一定代表操作成功，须查
 
 # endpoint: (summary, tag, query parameters, POST fields, required fields, access, notes)
 META = {
+    'catalog.dish_detail': ('菜品详情与评价', '菜品', [PAGE], None, [], 'public', '展示菜品价格、可见评价的平均评分和分页评价；无评价时不显示分数。'),
+    'reviews.add_dish_review': ('发布菜品评价', '菜品', [], dict(rating=SCORE, content=REVIEW['content']), ['rating', 'content'], 'user', '菜品必须属于路径指定的店铺；评分为 1~5 星，内容 5~500 字，独立于店铺评分。校验失败重定向并提示。'),
+    'reviews.delete_dish_review': ('删除菜品评价', '菜品', [], {}, [], 'owner', '仅本人或管理员可删除，菜品评分即时更新。'),
+    'admin.dish_reviews': ('管理菜品评价', '菜品', [PAGE], None, [], 'admin', '展示指定店铺全部菜品评价，含隐藏评价，每页 20 条。'),
+    'admin.toggle_dish_review': ('隐藏或恢复菜品评价', '菜品', [], {}, [], 'admin', '隐藏评价不展示且不参与平均分，操作记录写入审计日志。'),
     'catalog.categories': ('店铺分类目录', '餐厅', [], None, [], 'public', '按店铺分类展示店铺数量及平均人均价格，点击分类进入餐厅筛选列表。返回 HTML。'),
     'health': ('健康检查', '系统', [], None, [], 'public', '返回 JSON，检查数据库可连接。'),
     'favicon': ('站点图标占位', '系统', [], None, [], 'public', '返回空响应。'),

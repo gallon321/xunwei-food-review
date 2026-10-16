@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import stars %}
+{% block title %}{{ dish.name }} · {{ r.name }} · 寻味{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="{{ url_for('catalog.index') }}">首页</a> › <a href="{{ url_for('catalog.detail', rid=r.id, _anchor='shop-menu') }}">{{ r.name }}</a> › {{ dish.name }}</nav>
+<section class="panel dish-overview">
+  <p class="section-overline">{{ r.name }} / 菜品</p>
+  <div class="menu-item__heading"><h1>{{ dish.name }}</h1><strong class="menu-price">¥{{ dish.price }}</strong></div>
+  <div class="menu-rating">{% if total %}{{ stars(dish.rating) }}<b>{{ dish.rating }} 分</b><span>{{ total }} 条评价</span>{% else %}<span>暂无评分 · 0 条评价</span>{% endif %}</div>
+  <p class="muted">评分来自这道菜的食客评价，满分 5 分。</p>
+  <a class="text-link" href="{{ url_for('catalog.detail', rid=r.id, _anchor='shop-menu') }}">← 返回店铺菜品</a>
+</section>
+<div class="detail-grid"><section class="panel">
+  <h2 class="panel__title">菜品评价（{{ total }}）</h2>
+  {% for rv in reviews %}<article class="review">
+    <div class="review__head"><span class="avatar">{{ rv.display_author[0] }}</span><div><b>{{ rv.display_author }}</b><div class="review__meta">{{ stars(rv.rating, 'sm') }} <span>{{ rv.created_at }}</span></div></div></div>
+    <p class="review__content">{{ rv.content }}</p>
+    {% if g.user and (g.user.id == rv.user_id or g.user.role == 'admin') %}<form method="post" action="{{ url_for('reviews.delete_dish_review', review_id=rv.id) }}" onsubmit="return confirm('确定删除这条菜品评价？')"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="link-button danger">删除评价</button></form>{% endif %}
+  </article>{% else %}<p class="muted">还没有食客评价这道菜。来分享第一份品尝体验吧。</p>{% endfor %}
+  {% if pages > 1 %}<nav class="pagination" aria-label="菜品评价分页">{% for p in range(1,pages+1) %}<a class="{{ 'is-active' if p == page }}" href="{{ url_for('catalog.dish_detail', rid=r.id, did=dish.id, page=p) }}">{{ p }}</a>{% endfor %}</nav>{% endif %}
+</section><aside><section class="panel" id="write-dish-review">
+  <h2 class="panel__title">评价这道菜</h2><p class="muted">{{ dish.name }}</p>
+  {% if g.user %}<form method="post" action="{{ url_for('reviews.add_dish_review', rid=r.id, did=dish.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label class="field"><span>菜品评分</span><select name="rating" required><option value="">请选择评分</option>{% for v in [5,4,3,2,1] %}<option value="{{ v }}">{{ v }} 星</option>{% endfor %}</select></label>
+    <label class="field"><span>评价内容</span><textarea name="content" required minlength="5" maxlength="500" rows="5" placeholder="说说这道菜的口味、分量和性价比（5~500 字）"></textarea></label>
+    <button class="btn btn--block">发布菜品评价</button>
+  </form>{% else %}<p>登录后即可评分并分享品尝体验。</p><a class="btn" href="{{ url_for('accounts.login', next=url_for('catalog.dish_detail', rid=r.id, did=dish.id, _anchor='write-dish-review')) }}">登录评价</a>{% endif %}
+</section></aside></div>
+{% endblock %}

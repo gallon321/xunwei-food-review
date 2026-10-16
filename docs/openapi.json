@@ -313,6 +313,103 @@
         ]
       }
     },
+    "/admin/dish-review/{review_id}/toggle": {
+      "post": {
+        "summary": "隐藏或恢复菜品评价",
+        "operationId": "admin_toggle_dish_review_post",
+        "tags": [
+          "菜品"
+        ],
+        "description": "隐藏评价不展示且不参与平均分，操作记录写入审计日志。\n\n所有 POST 需同一会话 Cookie 与 CSRF token；表单字段 csrf_token 和头 X-CSRF-Token 二选一。\n\n权限：管理员。",
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "重定向；302 不一定代表操作成功，须查看目标页面提示。",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "站内跳转目标"
+              }
+            }
+          },
+          "400": {
+            "description": "无效参数或 CSRF 校验失败；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrf_token": {
+                    "type": "string",
+                    "description": "如已发送 X-CSRF-Token，此字段可省略"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/restaurant/{rid}/delete": {
       "post": {
         "summary": "删除餐厅",
@@ -408,6 +505,96 @@
             }
           }
         }
+      }
+    },
+    "/admin/restaurant/{rid}/dish-reviews": {
+      "get": {
+        "summary": "管理菜品评价",
+        "operationId": "admin_dish_reviews_get",
+        "tags": [
+          "菜品"
+        ],
+        "description": "展示指定店铺全部菜品评价，含隐藏评价，每页 20 条。\n\n权限：管理员。",
+        "parameters": [
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "分页页码"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML 页面（不是 JSON）",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "无效参数或 CSRF 校验失败；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ]
       }
     },
     "/admin/restaurant/{rid}/dish/{dish_id}/delete": {
@@ -898,6 +1085,14 @@
                     "type": "string",
                     "maxLength": 40
                   },
+                  "opening_time": {
+                    "type": "string",
+                    "description": "每日开始营业时间 HH:MM（北京时间），与 closing_time 同填或同空"
+                  },
+                  "closing_time": {
+                    "type": "string",
+                    "description": "每日结束营业时间 HH:MM；早于开始表示次日结束，相同表示全天营业"
+                  },
                   "description": {
                     "type": "string",
                     "maxLength": 2000
@@ -1073,6 +1268,14 @@
                   "phone": {
                     "type": "string",
                     "maxLength": 40
+                  },
+                  "opening_time": {
+                    "type": "string",
+                    "description": "每日开始营业时间 HH:MM（北京时间），与 closing_time 同填或同空"
+                  },
+                  "closing_time": {
+                    "type": "string",
+                    "description": "每日结束营业时间 HH:MM；早于开始表示次日结束，相同表示全天营业"
                   },
                   "description": {
                     "type": "string",
@@ -1598,6 +1801,103 @@
           }
         },
         "security": []
+      }
+    },
+    "/dish-review/{review_id}/delete": {
+      "post": {
+        "summary": "删除菜品评价",
+        "operationId": "reviews_delete_dish_review_post",
+        "tags": [
+          "菜品"
+        ],
+        "description": "仅本人或管理员可删除，菜品评分即时更新。\n\n所有 POST 需同一会话 Cookie 与 CSRF token；表单字段 csrf_token 和头 X-CSRF-Token 二选一。\n\n权限：点评本人或管理员。",
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "重定向；302 不一定代表操作成功，须查看目标页面提示。",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "站内跳转目标"
+              }
+            }
+          },
+          "400": {
+            "description": "无效参数或 CSRF 校验失败；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrf_token": {
+                    "type": "string",
+                    "description": "如已发送 X-CSRF-Token，此字段可省略"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/favicon.ico": {
@@ -2622,6 +2922,225 @@
           }
         },
         "security": []
+      }
+    },
+    "/restaurant/{rid}/dish/{did}": {
+      "get": {
+        "summary": "菜品详情与评价",
+        "operationId": "catalog_dish_detail_get",
+        "tags": [
+          "菜品"
+        ],
+        "description": "展示菜品价格、可见评价的平均评分和分页评价；无评价时不显示分数。",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "分页页码"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML 页面（不是 JSON）",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "无效参数或 CSRF 校验失败；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/restaurant/{rid}/dish/{did}/review": {
+      "post": {
+        "summary": "发布菜品评价",
+        "operationId": "reviews_add_dish_review_post",
+        "tags": [
+          "菜品"
+        ],
+        "description": "菜品必须属于路径指定的店铺；评分为 1~5 星，内容 5~500 字，独立于店铺评分。校验失败重定向并提示。\n\n所有 POST 需同一会话 Cookie 与 CSRF token；表单字段 csrf_token 和头 X-CSRF-Token 二选一。\n\n权限：已登录用户。",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "重定向；302 不一定代表操作成功，须查看目标页面提示。",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "站内跳转目标"
+              }
+            }
+          },
+          "400": {
+            "description": "无效参数或 CSRF 校验失败；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rating": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5,
+                    "example": 5
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 500,
+                    "example": "菜品味道很好，服务也很热情。"
+                  },
+                  "csrf_token": {
+                    "type": "string",
+                    "description": "如已发送 X-CSRF-Token，此字段可省略"
+                  }
+                },
+                "required": [
+                  "rating",
+                  "content"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/restaurant/{rid}/review": {

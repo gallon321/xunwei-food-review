@@ -9,6 +9,42 @@ from .services import audit
 
 bp = Blueprint("reviews", __name__)
 
+
+@bp.post('/restaurant/<int:rid>/dish/<int:did>/review')
+@login_required
+def add_dish_review(rid, did):
+    db = get_db()
+    if not db.execute('SELECT 1 FROM dishes WHERE id=? AND restaurant_id=?', (did, rid)).fetchone():
+        abort(404)
+    rating = request.form.get('rating', type=int)
+    content = (request.form.get('content') or '').strip()
+    if rating not in range(1, 6) or not 5 <= len(content) <= 500:
+        flash('请选择 1~5 星，并填写 5~500 字菜品评价。', 'error')
+        return redirect(url_for('catalog.dish_detail', rid=rid, did=did, _anchor='write-dish-review'))
+    db.execute('''INSERT INTO dish_reviews(dish_id,user_id,rating,content,created_at)
+        VALUES (?,?,?,?,?)''', (did, g.user['id'], rating, content, datetime.now().strftime('%Y-%m-%d %H:%M')))
+    db.commit()
+    flash('菜品评价已发布。', 'success')
+    return redirect(url_for('catalog.dish_detail', rid=rid, did=did))
+
+
+@bp.post('/dish-review/<int:review_id>/delete')
+@login_required
+def delete_dish_review(review_id):
+    db = get_db()
+    review = db.execute('''SELECT dr.*,d.restaurant_id FROM dish_reviews dr
+        JOIN dishes d ON d.id=dr.dish_id WHERE dr.id=?''', (review_id,)).fetchone()
+    if review is None:
+        abort(404)
+    if g.user['role'] != 'admin' and review['user_id'] != g.user['id']:
+        abort(403)
+    db.execute('DELETE FROM dish_reviews WHERE id=?', (review_id,))
+    if g.user['role'] == 'admin':
+        audit('删除菜品评价', review_id)
+    db.commit()
+    flash('菜品评价已删除，评分已更新。', 'success')
+    return redirect(url_for('catalog.dish_detail', rid=review['restaurant_id'], did=review['dish_id']))
+
 # ---------------------------------------------------------------- 发布点评
 @bp.route("/restaurant/<int:rid>/review", methods=["POST"])
 def add_review(rid):

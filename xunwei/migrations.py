@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from flask import current_app
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 4
 
 
 def backup_before_upgrade(db):
@@ -36,6 +36,10 @@ def migrate(db):
     columns = {r[1] for r in db.execute('PRAGMA table_info(users)')}
     if 'session_version' not in columns:
         db.execute('ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0')
+    columns = {r[1] for r in db.execute('PRAGMA table_info(restaurants)')}
+    for name in ('opening_time', 'closing_time'):
+        if name not in columns:
+            db.execute(f'ALTER TABLE restaurants ADD COLUMN {name} TEXT')
     db.executescript('''
         CREATE TABLE IF NOT EXISTS audit_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,6 +62,16 @@ def migrate(db):
             PRIMARY KEY (restaurant_id, sale_date)
         );
         CREATE INDEX IF NOT EXISTS idx_daily_sales_date ON daily_sales(sale_date, restaurant_id);
-        PRAGMA user_version = 2;
+        CREATE TABLE IF NOT EXISTS dish_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            dish_id INTEGER NOT NULL REFERENCES dishes(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'visible' CHECK(status IN ('visible','hidden'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_dish_reviews ON dish_reviews(dish_id,status,created_at,id);
+        PRAGMA user_version = 4;
     ''')
     db.commit()
