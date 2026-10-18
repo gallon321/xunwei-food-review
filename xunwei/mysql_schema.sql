@@ -78,3 +78,9 @@ CREATE TABLE IF NOT EXISTS dish_reviews (
  FOREIGN KEY(dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+CREATE TABLE IF NOT EXISTS browsing_history (
+ user_id INTEGER NOT NULL, restaurant_id INTEGER NOT NULL, viewed_at VARCHAR(32) NOT NULL,
+ PRIMARY KEY(user_id,restaurant_id), INDEX idx_browsing_user(user_id,viewed_at,restaurant_id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

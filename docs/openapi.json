@@ -2446,13 +2446,40 @@
     },
     "/profile": {
       "get": {
-        "summary": "个人点评与收藏",
+        "summary": "个人中心",
         "operationId": "accounts_profile_get",
         "tags": [
           "账号"
         ],
-        "description": "未登录跳转登录页，返回 HTML。\n\n权限：已登录用户。",
-        "parameters": [],
+        "description": "我的收藏、最近 100 家店铺浏览记录，以及店铺和菜品历史点评；每页 6 条。仅查看当前账号数据。\n\n权限：已登录用户。",
+        "parameters": [
+          {
+            "name": "tab",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "favorites",
+                "history",
+                "reviews"
+              ],
+              "default": "favorites"
+            },
+            "description": ""
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "分页页码"
+          }
+        ],
         "responses": {
           "200": {
             "description": "HTML 页面（不是 JSON）",
@@ -2511,6 +2538,179 @@
             "SessionCookie": []
           }
         ]
+      }
+    },
+    "/profile/history/{rid}/remove": {
+      "post": {
+        "summary": "移除浏览记录",
+        "operationId": "accounts_remove_history_post",
+        "tags": [
+          "账号"
+        ],
+        "description": "仅移除当前账号对指定店铺的浏览记录。\n\n所有 POST 需同一会话 Cookie 与 CSRF token；表单字段 csrf_token 和头 X-CSRF-Token 二选一。\n\n权限：已登录用户。",
+        "parameters": [
+          {
+            "name": "rid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "重定向；302 不一定代表操作成功，须查看目标页面提示。",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "站内跳转目标"
+              }
+            }
+          },
+          "400": {
+            "description": "无效参数或 CSRF 校验失败；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrf_token": {
+                    "type": "string",
+                    "description": "如已发送 X-CSRF-Token，此字段可省略"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile/history/clear": {
+      "post": {
+        "summary": "清空浏览记录",
+        "operationId": "accounts_clear_history_post",
+        "tags": [
+          "账号"
+        ],
+        "description": "仅清空当前账号的全部浏览记录，不影响收藏和点评。\n\n所有 POST 需同一会话 Cookie 与 CSRF token；表单字段 csrf_token 和头 X-CSRF-Token 二选一。\n\n权限：已登录用户。",
+        "parameters": [],
+        "responses": {
+          "302": {
+            "description": "重定向；302 不一定代表操作成功，须查看目标页面提示。",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "站内跳转目标"
+              }
+            }
+          },
+          "400": {
+            "description": "无效参数或 CSRF 校验失败；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "SessionCookie": [],
+            "CsrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csrf_token": {
+                    "type": "string",
+                    "description": "如已发送 X-CSRF-Token，此字段可省略"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/rankings": {

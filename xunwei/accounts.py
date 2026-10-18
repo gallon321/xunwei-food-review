@@ -85,12 +85,57 @@ def logout():
 @login_required
 def profile():
     db = get_db()
-    reviews = db.execute("""SELECT rv.*,r.name AS restaurant_name FROM reviews rv
-                            JOIN restaurants r ON r.id=rv.restaurant_id
-                            WHERE rv.user_id=? ORDER BY rv.created_at DESC""", (g.user["id"],)).fetchall()
-    favorites = db.execute("""SELECT r.* FROM favorites f JOIN restaurants r ON r.id=f.restaurant_id
-                              WHERE f.user_id=? ORDER BY f.created_at DESC""", (g.user["id"],)).fetchall()
-    return render_template("profile.html", reviews=reviews, favorites=favorites)
+    uid = g.user['id']
+    tab = request.args.get('tab', 'favorites')
+    if tab not in ('favorites', 'history', 'reviews'):
+        tab = 'favorites'
+    counts = {key: db.execute(f'SELECT COUNT(*) FROM {table} WHERE user_id=?', (uid,)).fetchone()[0]
+              for key, table in (('favorites', 'favorites'), ('history', 'browsing_history'), ('reviews', 'reviews'))}
+    counts['reviews'] += db.execute('SELECT COUNT(*) FROM dish_reviews WHERE user_id=?', (uid,)).fetchone()[0]
+    per_page = 6
+    pages = max(1, (counts[tab] + per_page - 1) // per_page)
+    page = min(max(request.args.get('page', 1, type=int), 1), pages)
+    offset = (page - 1) * per_page
+    if tab == 'reviews':
+        items = db.execute('''SELECT * FROM (
+            SELECT rv.id,rv.restaurant_id,rv.rating,rv.content,rv.created_at,rv.status,
+                r.name AS restaurant_name,'restaurant' AS kind,NULL AS dish_id,'' AS dish_name
+            FROM reviews rv JOIN restaurants r ON r.id=rv.restaurant_id WHERE rv.user_id=?
+            UNION ALL
+            SELECT dr.id,d.restaurant_id,dr.rating,dr.content,dr.created_at,dr.status,
+                r.name AS restaurant_name,'dish' AS kind,d.id AS dish_id,d.name AS dish_name
+            FROM dish_reviews dr JOIN dishes d ON d.id=dr.dish_id
+            JOIN restaurants r ON r.id=d.restaurant_id WHERE dr.user_id=?
+            ) own_reviews ORDER BY created_at DESC,id DESC,kind LIMIT ? OFFSET ?''',
+            (uid, uid, per_page, offset)).fetchall()
+    else:
+        table, date_field = ('favorites', 'created_at') if tab == 'favorites' else ('browsing_history', 'viewed_at')
+        items = db.execute(f'''SELECT r.*,f.{date_field} AS activity_at,
+            (SELECT COUNT(*) FROM reviews rv WHERE rv.restaurant_id=r.id AND rv.status='visible') AS review_count
+            FROM {table} f JOIN restaurants r ON r.id=f.restaurant_id
+            WHERE f.user_id=? ORDER BY f.{date_field} DESC,r.id DESC LIMIT ? OFFSET ?''',
+            (uid, per_page, offset)).fetchall()
+    favorite_ids = [row[0] for row in db.execute('SELECT restaurant_id FROM favorites WHERE user_id=?', (uid,))]
+    return render_template('profile.html', tab=tab, counts=counts, items=items,
+                           favorite_ids=favorite_ids, page=page, pages=pages)
+
+
+@bp.post('/profile/history/clear')
+@login_required
+def clear_history():
+    get_db().execute('DELETE FROM browsing_history WHERE user_id=?', (g.user['id'],))
+    get_db().commit()
+    flash('浏览记录已清空。', 'success')
+    return redirect(url_for('accounts.profile', tab='history'))
+
+
+@bp.post('/profile/history/<int:rid>/remove')
+@login_required
+def remove_history(rid):
+    get_db().execute('DELETE FROM browsing_history WHERE user_id=? AND restaurant_id=?', (g.user['id'], rid))
+    get_db().commit()
+    flash('已移除这条浏览记录。', 'success')
+    return redirect(url_for('accounts.profile', tab='history'))
 
 
 @bp.route('/settings', methods=['GET', 'POST'])

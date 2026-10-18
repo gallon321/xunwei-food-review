@@ -114,4 +114,5 @@ class DishReviewsTest(unittest.TestCase):
             init_db()
             self.assertEqual(db.execute('SELECT name FROM dishes WHERE id=1').fetchone()[0], '回锅肉')
             self.assertEqual(db.execute('SELECT COUNT(*) FROM dish_reviews').fetchone()[0], 0)
-            self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], 4)
+            from xunwei.migrations import SCHEMA_VERSION
+            self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], SCHEMA_VERSION)

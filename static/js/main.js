@@ -84,7 +84,9 @@
     if (window.XUNWEI && window.XUNWEI.loggedIn) {
       btn.disabled = true;
       toggleServer(id).then(function () {
-        if (new URL(window.location.href).searchParams.get('favorites') === '1') window.location.reload();
+        var current = new URL(window.location.href);
+        if (current.searchParams.get('favorites') === '1' ||
+            (current.pathname === '/profile' && (current.searchParams.get('tab') || 'favorites') === 'favorites')) window.location.reload();
       }).catch(function () { showNotice('收藏保存失败，请刷新或重新登录后重试。'); })
         .finally(function () { btn.disabled = false; });
       return;

@@ -43,6 +43,8 @@ def delete_dish_review(review_id):
         audit('删除菜品评价', review_id)
     db.commit()
     flash('菜品评价已删除，评分已更新。', 'success')
+    if request.form.get('next'):
+        return redirect(safe_next('accounts.profile'))
     return redirect(url_for('catalog.dish_detail', rid=review['restaurant_id'], did=review['dish_id']))
 
 # ---------------------------------------------------------------- 发布点评
@@ -127,7 +129,7 @@ def edit_review(review_id):
             recalculate_restaurant(review["restaurant_id"])
             get_db().commit()
             flash("点评已更新", "success")
-            return redirect(url_for("accounts.profile"))
+            return redirect(url_for("accounts.profile", tab='reviews'))
     return render_template("review_edit.html", review=review)
 
 
@@ -141,4 +143,6 @@ def delete_review(review_id):
     recalculate_restaurant(review["restaurant_id"])
     get_db().commit()
     flash("点评已删除", "success")
-    return redirect(url_for("admin.admin_dashboard" if g.user["role"] == "admin" else "accounts.profile"))
+    if request.form.get('next'):
+        return redirect(safe_next('accounts.profile'))
+    return redirect(url_for("admin.admin_dashboard") if g.user['role'] == 'admin' else url_for('accounts.profile', tab='reviews'))

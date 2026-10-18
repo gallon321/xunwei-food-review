@@ -4,7 +4,7 @@ from flask import (Blueprint, current_app as app, abort, flash, g, jsonify,
 from werkzeug.security import check_password_hash, generate_password_hash
 from .db import get_db
 from .security import login_required, admin_required, safe_next
-from .services import recalculate_restaurant
+from .services import recalculate_restaurant, record_visit
 from .hours import OPEN_SQL, business_hours, current_time
 
 bp = Blueprint("catalog", __name__)
@@ -176,6 +176,7 @@ def detail(rid):
     r = db.execute("SELECT * FROM restaurants WHERE id = ?", (rid,)).fetchone()
     if r is None:
         abort(404)
+    record_visit(rid)
 
     dishes = db.execute(
         """SELECT d.*, COUNT(dr.id) AS review_count, ROUND(AVG(dr.rating),1) AS rating
@@ -226,6 +227,7 @@ def dish_detail(rid, did):
         WHERE d.id=? AND d.restaurant_id=? GROUP BY d.id''', (did, rid)).fetchone()
     if restaurant is None or dish is None:
         abort(404)
+    record_visit(rid)
     total = dish['review_count']
     per_page = app.config['REVIEWS_PER_PAGE']
     pages = max(1, (total + per_page - 1) // per_page)

@@ -1,18 +1,45 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% from '_macros.html' import restaurant_card, stars with context %}
+{% set sections = [('favorites','我的收藏','把喜欢的店铺留给下一顿'),('history','浏览记录','回看最近心动的好味道'),('reviews','历史点评','记录每一次真实的用餐感受')] %}
 {% block title %}个人中心 · 寻味{% endblock %}
+{% block extra_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">{% endblock %}
 {% block content %}
-<section class="page-head"><h1>个人中心</h1><p class="muted">{{ g.user.username }} · 收藏与点评记录</p></section>
-<div class="profile-grid">
-  <section class="panel"><h2 class="panel__title">我的收藏 <span class="muted">({{ favorites|length }})</span></h2>
-    {% for r in favorites %}<div class="list-row"><span><a href="{{ url_for('catalog.detail', rid=r.id) }}"><b>{{ r.name }}</b></a></span><span>{{ r.rating }} 分 · ¥{{ r.avg_price }}/人</span></div>
-    {% else %}<p class="muted">还没有收藏餐厅。</p>{% endfor %}
+<div class="personal-page">
+  <section class="personal-hero">
+    <div class="personal-identity"><div class="personal-avatar" aria-hidden="true">{{ g.user.username[0]|upper }}</div><div><p class="section-overline">我的寻味手记</p><h1>{{ g.user.username }}<span>的美食空间</span></h1><p>喜欢的店、看过的味道、留下的评价，都在这里。</p></div></div>
+    <a class="personal-settings" href="{{ url_for('accounts.settings') }}">账号设置 <span aria-hidden="true">↗</span></a>
   </section>
-  <section class="panel"><h2 class="panel__title">我的点评 <span class="muted">({{ reviews|length }})</span></h2>
-    {% for rv in reviews %}<div class="review"><b><a href="{{ url_for('catalog.detail', rid=rv.restaurant_id) }}">{{ rv.restaurant_name }}</a></b> · {{ rv.rating }} 星
-      <p>{{ rv.content }}</p><small class="muted">{{ rv.created_at }} · {{ '已展示' if rv.status == 'visible' else '已隐藏' }}</small>
-      <div class="review-actions"><a href="{{ url_for('reviews.edit_review', review_id=rv.id) }}">编辑</a>
-        <form class="inline-form" method="post" action="{{ url_for('reviews.delete_review', review_id=rv.id) }}" onsubmit="return confirm('确定删除？')"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="link-button danger">删除</button></form></div>
-    </div>{% else %}<p class="muted">还没有发布点评。</p>{% endfor %}
-  </section>
+  <nav class="personal-tabs" aria-label="个人中心栏目">
+    {% for key,label,note in sections %}<a class="personal-tab {{ 'is-active' if tab == key }}" href="{{ url_for('accounts.profile', tab=key) }}" {% if tab == key %}aria-current="page"{% endif %}>
+      <div><span>{{ label }}</span><b {% if key == 'favorites' %}data-fav-count{% endif %}>{{ counts[key] }}</b></div><small>{{ note }}</small>
+    </a>{% endfor %}
+  </nav>
+  <div class="personal-layout"><section class="personal-content" aria-labelledby="personal-section-title">
+    <div class="personal-section-head"><div><p class="section-overline">{{ '喜欢 / FAVORITES' if tab == 'favorites' else '足迹 / RECENTLY VIEWED' if tab == 'history' else '分享 / MY REVIEWS' }}</p><h2 id="personal-section-title">{{ '我的收藏' if tab == 'favorites' else '浏览记录' if tab == 'history' else '历史点评' }}</h2><p class="muted">{{ '按收藏时间排列，随时回来挑选。' if tab == 'favorites' else '保留最近浏览的 100 家店铺，重复浏览会更新到最前面 · 北京时间。' if tab == 'history' else '店铺点评与菜品评价，按发布时间从近到远排列。' }}</p></div>
+    {% if tab == 'history' and counts.history %}<form method="post" action="{{ url_for('accounts.clear_history') }}" onsubmit="return confirm('确定清空你的全部浏览记录？')"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="btn-ghost">清空记录</button></form>{% endif %}</div>
+    {% if tab in ['favorites','history'] %}<div class="personal-restaurants">
+      {% for r in items %}<div class="personal-restaurant">
+        <div class="personal-activity"><span>{{ '收藏于' if tab == 'favorites' else '最近浏览' }} <time datetime="{{ r.activity_at }}">{{ r.activity_at[:16]|replace('T',' ') }}</time></span>
+          {% if tab == 'history' %}<form method="post" action="{{ url_for('accounts.remove_history', rid=r.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="link-button" aria-label="移除{{ r.name }}的浏览记录">移除记录</button></form>{% endif %}
+        </div>{{ restaurant_card(r, favorite_ids, true) }}
+      </div>{% else %}<div class="personal-empty"><span class="personal-empty-symbol" aria-hidden="true">{{ '♡' if tab == 'favorites' else '◷' }}</span><h3>{{ '还没有收藏的店铺' if tab == 'favorites' else '还没有浏览记录' }}</h3><p>{{ '看到心仪的餐厅，点一下收藏，就能在这里找到。' if tab == 'favorites' else '登录后打开店铺或菜品详情，最近浏览的店铺就会出现在这里。' }}</p><a class="btn" href="{{ url_for('catalog.index') }}">去发现好店 →</a></div>{% endfor %}
+    </div>{% else %}<div class="personal-reviews">
+      {% for rv in items %}<article class="personal-review">
+        <div class="personal-review-top"><span class="personal-kind">{{ '菜品评价' if rv.kind == 'dish' else '店铺点评' }}</span><span class="personal-review-status {{ 'is-hidden' if rv.status == 'hidden' }}">{{ '已隐藏' if rv.status == 'hidden' else '已展示' }}</span></div>
+        <h3><a href="{{ url_for('catalog.dish_detail', rid=rv.restaurant_id, did=rv.dish_id) if rv.kind == 'dish' else url_for('catalog.detail', rid=rv.restaurant_id) }}">{{ rv.dish_name if rv.kind == 'dish' else rv.restaurant_name }}</a></h3>
+        {% if rv.kind == 'dish' %}<p class="muted">{{ rv.restaurant_name }}</p>{% endif %}
+        <div class="personal-review-rating">{{ stars(rv.rating,'sm') }}<b>{{ rv.rating }} 星</b><time>{{ rv.created_at }}</time></div>
+        <p class="personal-review-text">{{ rv.content }}</p>
+        <div class="personal-review-actions"><a href="{{ url_for('catalog.dish_detail', rid=rv.restaurant_id, did=rv.dish_id) if rv.kind == 'dish' else url_for('catalog.detail', rid=rv.restaurant_id) }}">查看{{ '菜品' if rv.kind == 'dish' else '店铺' }} →</a><div>
+        {% if rv.kind == 'restaurant' %}<a href="{{ url_for('reviews.edit_review', review_id=rv.id) }}">编辑</a>{% endif %}
+        <form class="inline-form" method="post" action="{{ url_for('reviews.delete_dish_review', review_id=rv.id) if rv.kind == 'dish' else url_for('reviews.delete_review', review_id=rv.id) }}" onsubmit="return confirm('确定删除这条点评？')"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="next" value="{{ url_for('accounts.profile', tab='reviews') }}"><button class="link-button danger">删除</button></form>
+        </div></div>
+      </article>{% else %}<div class="personal-empty"><span class="personal-empty-symbol" aria-hidden="true">✎</span><h3>用点评记住每一种味道</h3><p>你发布的店铺点评与菜品评价会集中保存在这里。</p><a class="btn" href="{{ url_for('catalog.index') }}">找一家店写点评 →</a></div>{% endfor %}
+    </div>{% endif %}
+    {% if pages > 1 %}<nav class="pagination" aria-label="个人记录分页">{% for p in range(1,pages+1) %}<a href="{{ url_for('accounts.profile', tab=tab, page=p) }}" class="{{ 'is-active' if p == page }}" {% if p == page %}aria-current="page"{% endif %}>{{ p }}</a>{% endfor %}</nav>{% endif %}
+  </section><aside class="personal-aside">
+    <section class="personal-discover"><p class="section-overline">下一顿，吃点喜欢的</p><h2>好味道<br>值得再遇见。</h2><p>从收藏里重温熟悉的味道，或为今天找一点新鲜感。</p><a class="btn" href="{{ url_for('discovery.recommendations') }}">看看为你推荐 →</a><a class="text-link" href="{{ url_for('catalog.categories') }}">按分类找店</a></section>
+    <section class="personal-account"><h2>我的账号</h2><p><span>加入寻味</span><time>{{ g.user.created_at[:10] }}</time></p><p><span>账号身份</span><b>{{ '管理员' if g.user.role == 'admin' else '美食探索者' }}</b></p><a href="{{ url_for('accounts.settings') }}">管理账号 →</a></section>
+  </aside></div>
 </div>
 {% endblock %}

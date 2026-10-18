@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from flask import current_app
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 def backup_before_upgrade(db):
@@ -72,6 +72,13 @@ def migrate(db):
             status TEXT NOT NULL DEFAULT 'visible' CHECK(status IN ('visible','hidden'))
         );
         CREATE INDEX IF NOT EXISTS idx_dish_reviews ON dish_reviews(dish_id,status,created_at,id);
-        PRAGMA user_version = 4;
+        CREATE TABLE IF NOT EXISTS browsing_history (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+            viewed_at TEXT NOT NULL,
+            PRIMARY KEY(user_id,restaurant_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_browsing_user ON browsing_history(user_id,viewed_at,restaurant_id);
+        PRAGMA user_version = 5;
     ''')
     db.commit()
