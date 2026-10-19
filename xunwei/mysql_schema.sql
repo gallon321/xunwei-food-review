@@ -84,3 +84,24 @@ CREATE TABLE IF NOT EXISTS browsing_history (
  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
  FOREIGN KEY(restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+
+        CREATE TABLE IF NOT EXISTS phone_accounts (
+            phone VARCHAR(11) PRIMARY KEY,
+            user_id INTEGER NOT NULL UNIQUE,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS sms_codes (
+            phone VARCHAR(11) NOT NULL,
+            purpose VARCHAR(10) NOT NULL,
+            code_hash VARCHAR(64) NOT NULL,
+            expires_at DOUBLE NOT NULL,
+            attempts INTEGER NOT NULL,
+            sent_at DOUBLE NOT NULL,
+            PRIMARY KEY(phone,purpose)
+        );
+        CREATE TABLE IF NOT EXISTS sms_limits (
+            identity VARCHAR(64) PRIMARY KEY,
+            hits INTEGER NOT NULL,
+            expires_at DOUBLE NOT NULL
+        );

@@ -27,7 +27,7 @@ $env:MYSQL_PASSWORD = $mysqlCredential.GetNetworkCredential().Password
 - 保留现有数据：`python -m flask --app app migrate-sqlite --source xunwei.db`
 - 全新安装：`python -m flask --app app init-db`，然后 `python -m flask --app app create-admin`；课程演示可改用 `init-db --demo`。
 
-迁移命令要求目标业务表为空，源 SQLite 的版本为 2、3、4 或 5 且外键检查通过。旧版源库没有菜品评价表或浏览记录表时按空记录处理。导入保留 ID、密码哈希和会话版本，逐表核对记录数及字段值，通过后统一提交；失败回滚已导入数据，建表结构会保留。请在导入期间停止项目，避免并发业务写入。再次导入非空数据库会被拒绝，不会覆盖业务数据。迁移只读原 SQLite 文件。
+迁移命令要求目标业务表为空，源 SQLite 的版本为 2～6 且外键检查通过。旧版源库没有菜品评价表、浏览记录表或手机认证相关表时按空记录处理。导入保留 ID、密码哈希和会话版本，逐表核对记录数及字段值，通过后统一提交；失败回滚已导入数据，建表结构会保留。请在导入期间停止项目，避免并发业务写入。再次导入非空数据库会被拒绝，不会覆盖业务数据。迁移只读原 SQLite 文件。
 
 启动：`python serve.py`，访问 `http://127.0.0.1:5000/health` 检查连接。
 

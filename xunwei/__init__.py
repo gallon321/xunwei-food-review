@@ -28,6 +28,7 @@ def create_app(config=None):
         SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax',
         SESSION_COOKIE_SECURE=production, MAX_CONTENT_LENGTH=65536,
         PRODUCTION=production,
+        SMS_DEMO=os.environ.get('XUNWEI_SMS_DEMO', '1') == '1', SMS_SENDER=None,
     )
     if config:
         app.config.update(config)
@@ -52,10 +53,10 @@ def create_app(config=None):
     if app.config['PRODUCTION'] and (len(app.config['SECRET_KEY']) < 32 or app.config['SEED_DEMO']):
         raise RuntimeError('Production requires a strong secret and SEED_DEMO=False.')
 
-    from . import accounts, admin, catalog, favorites, reviews, discovery
+    from . import accounts, admin, catalog, favorites, reviews, discovery, phone_auth
     from .db import close_db, get_db
     from .security import load_user_and_csrf, inject_globals
-    for module in (accounts, admin, catalog, favorites, reviews, discovery):
+    for module in (accounts, admin, catalog, favorites, reviews, discovery, phone_auth):
         app.register_blueprint(module.bp)
     app.teardown_appcontext(close_db)
     app.before_request(load_user_and_csrf)

@@ -39,6 +39,8 @@ REDIRECT = {'description': '重定向；302 不一定代表操作成功，须查
 
 # endpoint: (summary, tag, query parameters, POST fields, required fields, access, notes)
 META = {
+    'phone_auth.send_code': ('获取手机验证码', '账号', [], dict(phone=string(pattern='^1[3-9][0-9]{9}$'), purpose=string(enum=['login', 'register'])), ['phone', 'purpose'], 'public', '本地默认演示模式，JSON 返回 demo_code，页面显示验证码，不发送真实短信。有效期5分钟，同一手机号每分钟1次、每小时10次，同一IP每小时30次。生产环境禁止演示，未配置发送器返回503。'),
+    'phone_auth.authenticate': ('手机验证码登录或注册', '账号', [query('next', string(), '站内跳转路径')], dict(phone=string(pattern='^1[3-9][0-9]{9}$'), code=string(pattern='^[0-9]{6}$'), next=string()), ['phone', 'code'], 'public', 'purpose 为 login 或 register。验证码用途隔离、最多5次尝试、成功后一次性失效。注册自动创建账号并登录；登录要求手机号已经注册。错误返回400 HTML，成功302。'),
     'catalog.dish_detail': ('菜品详情与评价', '菜品', [PAGE], None, [], 'public', '展示菜品价格、可见评价的平均评分和分页评价；无评价时不显示分数。'),
     'reviews.add_dish_review': ('发布菜品评价', '菜品', [], dict(rating=SCORE, content=REVIEW['content']), ['rating', 'content'], 'user', '菜品必须属于路径指定的店铺；评分为 1~5 星，内容 5~500 字，独立于店铺评分。校验失败重定向并提示。'),
     'reviews.delete_dish_review': ('删除菜品评价', '菜品', [], {}, [], 'owner', '仅本人或管理员可删除，菜品评分即时更新。'),
@@ -111,7 +113,7 @@ def build_spec():
             operation = {'summary': summary + ('（页面）' if method == 'GET' and fields is not None else ''),
                          'operationId': rule.endpoint.replace('.', '_') + '_' + method.lower(),
                          'tags': [tag], 'description': notes,
-                         'parameters': [{'name': name, 'in': 'path', 'required': True, 'schema': integer(minimum=1), 'example': 1}
+                         'parameters': [{'name': name, 'in': 'path', 'required': True, 'schema': string(enum=['login', 'register']) if name == 'purpose' else integer(minimum=1), 'example': 'login' if name == 'purpose' else 1}
                                         for name in sorted(rule.arguments)] + (queries if not post else []),
                          'responses': {}, 'security': []}
             responses = operation['responses']
@@ -158,6 +160,14 @@ def build_spec():
             if rule.endpoint == 'favicon':
                 responses.clear()
                 responses['204'] = {'description': '空响应'}
+            if rule.endpoint == 'phone_auth.send_code':
+                responses.pop('302', None)
+                schema = {'type': 'object', 'properties': {'message': string(), 'retry_after': integer(), 'demo_code': string(description='仅非生产演示模式返回')}}
+                for status in ('200', '429', '503'):
+                    responses[status] = {'description': '发送结果', 'content': {'application/json': {'schema': schema}}}
+                responses['400']['description'] = '参数错误返回 JSON message；CSRF 错误返回 HTML'
+                responses['400']['content'] = dict(responses['400']['content'])
+                responses['400']['content']['application/json'] = {'schema': schema}
             spec['paths'].setdefault(path, {})[method.lower()] = operation
     return spec
 

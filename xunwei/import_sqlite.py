@@ -24,8 +24,8 @@ def migrate_sqlite(source):
     try:
         if snapshot.execute('PRAGMA foreign_key_check').fetchone():
             raise click.ClickException('Source has broken foreign keys; migration cancelled.')
-        if snapshot.execute('PRAGMA user_version').fetchone()[0] not in (2, 3, 4, 5):
-            raise click.ClickException('Source must be upgraded to schema version 2, 3, 4 or 5 first.')
+        if snapshot.execute('PRAGMA user_version').fetchone()[0] not in (2, 3, 4, 5, 6):
+            raise click.ClickException('Source must be upgraded to schema version 2, 3, 4, 5 or 6 first.')
         initialize(db)
         # Prevent simultaneous invocations of this import command.
         if db.execute("SELECT GET_LOCK('xunwei_sqlite_import',10)").fetchone()[0] != 1:
@@ -38,7 +38,7 @@ def migrate_sqlite(source):
             for table in TABLES:
                 # Older supported SQLite versions have no dish review table yet.
                 exists = snapshot.execute('SELECT 1 FROM sqlite_master WHERE type=? AND name=?', ('table', table)).fetchone()
-                rows = [] if table in ('dish_reviews', 'browsing_history') and not exists else snapshot.execute(f'SELECT * FROM "{table}"').fetchall()
+                rows = [] if table in ('dish_reviews', 'browsing_history', 'phone_accounts', 'sms_codes', 'sms_limits') and not exists else snapshot.execute(f'SELECT * FROM "{table}"').fetchall()
                 for row in rows:
                     if table == 'app_meta' and row['key'] == 'schema_version':
                         continue

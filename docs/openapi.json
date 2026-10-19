@@ -1749,6 +1749,168 @@
         }
       }
     },
+    "/auth/sms/send": {
+      "post": {
+        "summary": "获取手机验证码",
+        "operationId": "phone_auth_send_code_post",
+        "tags": [
+          "账号"
+        ],
+        "description": "本地默认演示模式，JSON 返回 demo_code，页面显示验证码，不发送真实短信。有效期5分钟，同一手机号每分钟1次、每小时10次，同一IP每小时30次。生产环境禁止演示，未配置发送器返回503。\n\n所有 POST 需同一会话 Cookie 与 CSRF token；表单字段 csrf_token 和头 X-CSRF-Token 二选一。",
+        "parameters": [],
+        "responses": {
+          "400": {
+            "description": "参数错误返回 JSON message；CSRF 错误返回 HTML",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "retry_after": {
+                      "type": "integer"
+                    },
+                    "demo_code": {
+                      "type": "string",
+                      "description": "仅非生产演示模式返回"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "发送结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "retry_after": {
+                      "type": "integer"
+                    },
+                    "demo_code": {
+                      "type": "string",
+                      "description": "仅非生产演示模式返回"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "发送结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "retry_after": {
+                      "type": "integer"
+                    },
+                    "demo_code": {
+                      "type": "string",
+                      "description": "仅非生产演示模式返回"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "发送结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "retry_after": {
+                      "type": "integer"
+                    },
+                    "demo_code": {
+                      "type": "string",
+                      "description": "仅非生产演示模式返回"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CsrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^1[3-9][0-9]{9}$"
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "enum": [
+                      "login",
+                      "register"
+                    ]
+                  },
+                  "csrf_token": {
+                    "type": "string",
+                    "description": "如已发送 X-CSRF-Token，此字段可省略"
+                  }
+                },
+                "required": [
+                  "phone",
+                  "purpose"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/categories": {
       "get": {
         "summary": "店铺分类目录",
@@ -2438,6 +2600,205 @@
                     "description": "如已发送 X-CSRF-Token，此字段可省略"
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/phone/{purpose}": {
+      "get": {
+        "summary": "手机验证码登录或注册（页面）",
+        "operationId": "phone_auth_authenticate_get",
+        "tags": [
+          "账号"
+        ],
+        "description": "purpose 为 login 或 register。验证码用途隔离、最多5次尝试、成功后一次性失效。注册自动创建账号并登录；登录要求手机号已经注册。错误返回400 HTML，成功302。",
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "login",
+                "register"
+              ]
+            },
+            "example": "login"
+          },
+          {
+            "name": "next",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "站内跳转路径"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML 页面（不是 JSON）",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "无效参数或 CSRF 校验失败；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "手机验证码登录或注册",
+        "operationId": "phone_auth_authenticate_post",
+        "tags": [
+          "账号"
+        ],
+        "description": "purpose 为 login 或 register。验证码用途隔离、最多5次尝试、成功后一次性失效。注册自动创建账号并登录；登录要求手机号已经注册。错误返回400 HTML，成功302。\n\n所有 POST 需同一会话 Cookie 与 CSRF token；表单字段 csrf_token 和头 X-CSRF-Token 二选一。",
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "login",
+                "register"
+              ]
+            },
+            "example": "login"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "重定向；302 不一定代表操作成功，须查看目标页面提示。",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "站内跳转目标"
+              }
+            }
+          },
+          "400": {
+            "description": "无效参数或 CSRF 校验失败；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "记录不存在；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误；HTML 错误页",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CsrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^1[3-9][0-9]{9}$"
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[0-9]{6}$"
+                  },
+                  "next": {
+                    "type": "string"
+                  },
+                  "csrf_token": {
+                    "type": "string",
+                    "description": "如已发送 X-CSRF-Token，此字段可省略"
+                  }
+                },
+                "required": [
+                  "phone",
+                  "code"
+                ]
               }
             }
           }

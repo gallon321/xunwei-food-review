@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from flask import current_app
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 def backup_before_upgrade(db):
@@ -79,6 +79,25 @@ def migrate(db):
             PRIMARY KEY(user_id,restaurant_id)
         );
         CREATE INDEX IF NOT EXISTS idx_browsing_user ON browsing_history(user_id,viewed_at,restaurant_id);
-        PRAGMA user_version = 5;
+
+        CREATE TABLE IF NOT EXISTS phone_accounts (
+            phone VARCHAR(11) PRIMARY KEY,
+            user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS sms_codes (
+            phone VARCHAR(11) NOT NULL,
+            purpose VARCHAR(10) NOT NULL,
+            code_hash VARCHAR(64) NOT NULL,
+            expires_at DOUBLE NOT NULL,
+            attempts INTEGER NOT NULL,
+            sent_at DOUBLE NOT NULL,
+            PRIMARY KEY(phone,purpose)
+        );
+        CREATE TABLE IF NOT EXISTS sms_limits (
+            identity VARCHAR(64) PRIMARY KEY,
+            hits INTEGER NOT NULL,
+            expires_at DOUBLE NOT NULL
+        );
+        PRAGMA user_version = 6;
     ''')
     db.commit()

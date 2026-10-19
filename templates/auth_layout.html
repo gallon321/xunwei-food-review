@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block extra_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">{% endblock %}
+{% block content %}
+<section class="auth-layout" aria-labelledby="auth-title">
+  <aside class="auth-story">
+    <img src="{{ url_for('static', filename='images/dining.jpg') }}" alt="温暖灯光下的餐厅与用餐空间">
+    <a class="auth-story__brand" href="{{ url_for('catalog.index') }}"><span>寻</span> 寻味 · 发现身边好味道</a>
+    <div class="auth-story__copy">
+      <span class="auth-story__eyebrow">每一餐，都值得期待</span>
+      <h2>好味道，<br>从这里相遇。</h2>
+      <p>收藏心动的餐厅，记录舌尖的惊喜。<br>让每一次出发，都有美食相伴。</p>
+      <div class="auth-story__tags"><span>发现好店</span><i></i><span>分享体验</span><i></i><span>收藏美味</span></div>
+    </div>
+  </aside>
+  <div class="auth-content">
+    <div class="auth-heading">
+      <span class="auth-eyebrow">{{ '开启你的寻味之旅' if mode == 'register' else '很高兴，又见到你' }}</span>
+      <h1 id="auth-title">{{ '注册寻味' if mode == 'register' else '欢迎回来' }}<span>。</span></h1>
+      <p>{{ '创建账号，把喜欢的味道留在身边。' if mode == 'register' else '登录寻味，继续探索你的美食清单。' }}</p>
+    </div>
+    {% set phone_mode = request.endpoint == 'phone_auth.authenticate' %}
+    <nav class="auth-methods" aria-label="{{ '注册' if mode == 'register' else '登录' }}方式">
+      <a class="{{ 'is-active' if not phone_mode }}" {% if not phone_mode %}aria-current="page"{% endif %} href="{{ url_for('accounts.register' if mode == 'register' else 'accounts.login', next=request.values.get('next', '')) }}">账号密码</a>
+      <a class="{{ 'is-active' if phone_mode }}" {% if phone_mode %}aria-current="page"{% endif %} href="{{ url_for('phone_auth.authenticate', purpose=mode, next=request.values.get('next', '')) }}">手机验证码</a>
+    </nav>
+    {% block auth_form %}{% endblock %}
+    <div class="auth-switch">
+      {{ '已有账号？' if mode == 'register' else '还没有账号？' }}
+      <a href="{{ url_for('phone_auth.authenticate', purpose='login' if mode == 'register' else 'register', next=request.values.get('next', '')) if phone_mode else url_for('accounts.login' if mode == 'register' else 'accounts.register', next=request.values.get('next', '')) }}">{{ '立即登录' if mode == 'register' else '立即注册' }} <span aria-hidden="true">→</span></a>
+    </div>
+    <p class="auth-footnote"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M10 2 16 4.5V10c0 4-6 7-6 7S4 14 4 10V4.5Z"/><path d="m7 9 2 2 4-4"/></svg>安心登录，尽情寻味</p>
+  </div>
+</section>
+{% endblock %}
